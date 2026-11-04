@@ -1,0 +1,4 @@
+{
+  "parent": "minecraft:block/cube",
+  "textures": { "all": "lucky7:block/slot_machine" }
+}

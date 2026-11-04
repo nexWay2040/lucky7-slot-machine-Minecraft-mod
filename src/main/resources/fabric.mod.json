@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "lucky7",
+  "version": "${version}",
+  "name": "Lucky 7",
+  "description": "A configurable retro slot machine with server-authoritative gameplay.",
+  "authors": ["Lucky 7 Team"],
+  "license": "MIT",
+  "icon": "assets/lucky7/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["com.lucky7.mod.Lucky7Mod"],
+    "client": ["com.lucky7.mod.client.Lucky7Client"]
+  },
+  "depends": {
+    "fabricloader": ">=0.16.10",
+    "minecraft": "~1.21.1",
+    "java": ">=21",
+    "fabric-api": ">=0.116.0"
+  }
+}

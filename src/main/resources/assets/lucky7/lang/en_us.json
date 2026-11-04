@@ -1,0 +1,22 @@
+{
+  "itemGroup.lucky7.general": "Lucky 7 Slot Machines",
+  "block.lucky7.slot_machine": "Lucky 7 Slot Machine",
+  "item.lucky7.slot_machine": "Lucky 7 Slot Machine",
+  "gui.lucky7.title": "LUCKY 7 // CONTROL PANEL",
+  "gui.lucky7.start": "START",
+  "gui.lucky7.return": "RETURN",
+  "gui.lucky7.info": "INFO",
+  "gui.lucky7.stats": "STATS",
+  "message.lucky7.disabled": "Slot machine is disabled in configuration.",
+  "message.lucky7.empty_stake": "Insert ores or items into the stake slots!",
+  "message.lucky7.stake_too_big": "Stake exceeds maximum limit.",
+  "message.lucky7.too_many_items": "Too many items in stake.",
+  "message.lucky7.busy": "Reels are currently spinning!",
+  "subtitles.lucky7.button_click": "Button clicked",
+  "subtitles.lucky7.coin_insert": "Coin inserted",
+  "subtitles.lucky7.machine_start": "Machine started",
+  "subtitles.lucky7.reel_spin": "Reels spinning",
+  "subtitles.lucky7.reel_stop": "Reel stopped",
+  "subtitles.lucky7.small_win": "Win payout",
+  "subtitles.lucky7.jackpot": "JACKPOT!"
+}

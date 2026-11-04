@@ -1,0 +1,9 @@
+{
+  "button_click": { "subtitle": "subtitles.lucky7.button_click", "sounds": [{ "name": "lucky7:button_click", "volume": 0.75 }] },
+  "coin_insert": { "subtitle": "subtitles.lucky7.coin_insert", "sounds": [{ "name": "lucky7:coin_insert", "volume": 0.65 }] },
+  "machine_start": { "subtitle": "subtitles.lucky7.machine_start", "sounds": [{ "name": "lucky7:machine_start", "volume": 0.75 }] },
+  "reel_spin": { "subtitle": "subtitles.lucky7.reel_spin", "sounds": [{ "name": "lucky7:reel_spin", "volume": 0.55, "stream": true }] },
+  "reel_stop": { "subtitle": "subtitles.lucky7.reel_stop", "sounds": [{ "name": "lucky7:reel_stop", "volume": 0.65 }] },
+  "small_win": { "subtitle": "subtitles.lucky7.small_win", "sounds": [{ "name": "lucky7:small_win", "volume": 0.8 }] },
+  "jackpot": { "subtitle": "subtitles.lucky7.jackpot", "sounds": [{ "name": "lucky7:jackpot", "volume": 0.9 }] }
+}

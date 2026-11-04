@@ -1,0 +1,22 @@
+{
+  "itemGroup.lucky7.general": "Игровые автоматы Lucky 7",
+  "block.lucky7.slot_machine": "Игровой автомат Lucky 7",
+  "item.lucky7.slot_machine": "Игровой автомат Lucky 7",
+  "gui.lucky7.title": "LUCKY 7 // ПАНЕЛЬ УПРАВЛЕНИЯ",
+  "gui.lucky7.start": "СТАРТ",
+  "gui.lucky7.return": "ВЕРНУТЬ",
+  "gui.lucky7.info": "ИНФО",
+  "gui.lucky7.stats": "СТАТИСТИКА",
+  "message.lucky7.disabled": "Автомат отключён в настройках сервера.",
+  "message.lucky7.empty_stake": "Положите руды или ценности в слоты ставки!",
+  "message.lucky7.stake_too_big": "Ставка превышает максимальный лимит.",
+  "message.lucky7.too_many_items": "Слишком много предметов в ставке.",
+  "message.lucky7.busy": "Барабаны уже вращаются!",
+  "subtitles.lucky7.button_click": "Щелчок кнопки",
+  "subtitles.lucky7.coin_insert": "Монета опущена",
+  "subtitles.lucky7.machine_start": "Запуск автомата",
+  "subtitles.lucky7.reel_spin": "Вращение барабанов",
+  "subtitles.lucky7.reel_stop": "Остановка барабана",
+  "subtitles.lucky7.small_win": "Выигрыш",
+  "subtitles.lucky7.jackpot": "ДЖЕКПОТ!"
+}

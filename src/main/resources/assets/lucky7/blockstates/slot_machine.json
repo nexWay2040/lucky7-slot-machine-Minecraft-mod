@@ -1,0 +1,12 @@
+{
+  "variants": {
+    "facing=north,half=lower": { "model": "lucky7:block/empty" },
+    "facing=south,half=lower": { "model": "lucky7:block/empty" },
+    "facing=east,half=lower": { "model": "lucky7:block/empty" },
+    "facing=west,half=lower": { "model": "lucky7:block/empty" },
+    "facing=north,half=upper": { "model": "lucky7:block/empty" },
+    "facing=south,half=upper": { "model": "lucky7:block/empty" },
+    "facing=east,half=upper": { "model": "lucky7:block/empty" },
+    "facing=west,half=upper": { "model": "lucky7:block/empty" }
+  }
+}
