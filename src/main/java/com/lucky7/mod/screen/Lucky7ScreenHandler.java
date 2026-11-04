@@ -194,4 +194,6 @@ public final class Lucky7ScreenHandler extends ScreenHandler {
     public int totalWagered() { return props.get(13); }
     public int totalPaid() { return props.get(14); }
     public int stakeItems() { return props.get(15); }
+    public int feverSpins() { return props.get(16); }
+    public boolean isFeverMode() { return props.get(16) > 0; }
 }

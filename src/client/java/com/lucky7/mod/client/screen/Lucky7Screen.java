@@ -163,7 +163,11 @@ public final class Lucky7Screen extends HandledScreen<Lucky7ScreenHandler> {
         }
 
         // Header Title
-        ctx.drawText(textRenderer, Text.literal("LUCKY 7 // ПАНЕЛЬ УПРАВЛЕНИЯ").formatted(Formatting.GOLD), x + 12, y + 8, 0xFFF0C850, false);
+        if (handler.isFeverMode()) {
+            ctx.drawText(textRenderer, Text.literal("LUCKY 7 // 🔥 FEVER MODE (" + handler.feverSpins() + " СПИНА) 🔥").formatted(Formatting.GOLD, Formatting.BOLD), x + 12, y + 8, 0xFFFFAA00, false);
+        } else {
+            ctx.drawText(textRenderer, Text.literal("LUCKY 7 // ПАНЕЛЬ УПРАВЛЕНИЯ").formatted(Formatting.GOLD), x + 12, y + 8, 0xFFF0C850, false);
+        }
         String poolText = String.format(Locale.ROOT, "ПУЛ: %06d", handler.jackpotPool());
         ctx.drawText(textRenderer, Text.literal(poolText).formatted(Formatting.RED), x + W - 92, y + 8, 0xFFFF5555, false);
 

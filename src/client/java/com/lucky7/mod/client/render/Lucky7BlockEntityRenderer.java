@@ -169,6 +169,38 @@ public final class Lucky7BlockEntityRenderer implements BlockEntityRenderer<Luck
         solidBox(matrices, vc, GOLD, 0.10f, 1.80f, 0.89f, 0.90f, 2.02f, 0.93f, light);
         solidBox(matrices, vc, MARQUEE, 0.12f, 1.81f, 0.91f, 0.88f, 2.01f, 0.935f, 0x00F000F0);
 
+        // Animated Casino Cabochon Bulbs along top crown (Chaser lights & disco strobe)
+        long time = System.currentTimeMillis();
+        boolean spinning = be.isSpinning();
+        boolean isFever = be.isFeverMode();
+
+        for (int b = 0; b < 7; b++) {
+            float bx = 0.16f + b * 0.105f;
+            Identifier bulbTex;
+            int bulbLight = 0x00F000F0;
+
+            if (isFever) {
+                int disco = (int) ((time / 80 + b) % 3);
+                bulbTex = (disco == 0) ? BUTTON : (disco == 1 ? GOLD : KNOB);
+            } else if (spinning) {
+                int chase = (int) ((time / 90) % 7);
+                bulbTex = (b == chase || b == (chase + 1) % 7) ? BUTTON : GOLD;
+            } else {
+                boolean alt = ((time / 500 + b) % 2 == 0);
+                bulbTex = alt ? GOLD : BUTTON;
+            }
+
+            // Top bulbs along crown
+            solidBox(matrices, vc, bulbTex, bx, 2.02f, 0.92f, bx + 0.045f, 2.045f, 0.945f, bulbLight);
+            // Bottom bulbs along deck edge
+            solidBox(matrices, vc, bulbTex, bx, 1.77f, 0.92f, bx + 0.045f, 1.795f, 0.945f, bulbLight);
+        }
+
+        if (isFever) {
+            // Luminous golden aura filling the reel chamber
+            solidBox(matrices, vc, GOLD, 0.14f, 1.16f, 0.20f, 0.86f, 1.74f, 0.22f, 0x00F000F0);
+        }
+
         // =====================================================================
         // 6. FULL BACK & SIDE PANELS (Guarantees zero holes or inside-out faces)
         // =====================================================================

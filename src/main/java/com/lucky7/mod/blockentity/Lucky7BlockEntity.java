@@ -1,6 +1,7 @@
 package com.lucky7.mod.blockentity;
 
 import com.lucky7.mod.Lucky7Mod;
+import com.lucky7.mod.block.Lucky7Block;
 import com.lucky7.mod.config.Lucky7Config;
 import com.lucky7.mod.game.WinCategory;
 import com.lucky7.mod.game.probability.ProbabilityCalculator;
@@ -38,6 +39,7 @@ import net.minecraft.screen.PropertyDelegate;
 import net.minecraft.screen.ScreenHandler;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.math.Direction;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
@@ -86,6 +88,12 @@ public class Lucky7BlockEntity extends BlockEntity implements Inventory, Extende
 
     private int redstoneOutput = 0;
     private int redstonePulseTicks = 0;
+
+    private int feverSpins = 0;
+    private int lastReelStoppedClient = -1;
+
+    public int feverSpins() { return feverSpins; }
+    public boolean isFeverMode() { return feverSpins > 0; }
 
     public Lucky7BlockEntity(BlockPos pos, BlockState state) {
         super(Lucky7BlockEntities.SLOT_MACHINE, pos, state);
@@ -231,18 +239,23 @@ public class Lucky7BlockEntity extends BlockEntity implements Inventory, Extende
             return false;
         }
 
+        boolean isFever = (feverSpins > 0);
         int value = stakeValue();
         if (value <= 0) {
-            Lucky7Mod.LOGGER.info("Spin rejected: stake value is 0 (stakeItems = {})", stakeItems());
-            message(player, "message.lucky7.empty_stake");
-            return false;
+            if (isFever) {
+                value = 500; // Simulated high-roller stake during free fever spins
+            } else {
+                Lucky7Mod.LOGGER.info("Spin rejected: stake value is 0 (stakeItems = {})", stakeItems());
+                message(player, "message.lucky7.empty_stake");
+                return false;
+            }
         }
-        if (value > Lucky7Config.INSTANCE.maxStakeValue) {
+        if (value > Lucky7Config.INSTANCE.maxStakeValue && !isFever) {
             Lucky7Mod.LOGGER.info("Spin rejected: stake value {} exceeds max {}", value, Lucky7Config.INSTANCE.maxStakeValue);
             message(player, "message.lucky7.stake_too_big");
             return false;
         }
-        if (stakeItems() > Lucky7Config.INSTANCE.maxStakeItems) {
+        if (stakeItems() > Lucky7Config.INSTANCE.maxStakeItems && !isFever) {
             Lucky7Mod.LOGGER.info("Spin rejected: stake items count {} exceeds max {}", stakeItems(), Lucky7Config.INSTANCE.maxStakeItems);
             message(player, "message.lucky7.too_many_items");
             return false;
@@ -252,10 +265,35 @@ public class Lucky7BlockEntity extends BlockEntity implements Inventory, Extende
             return false;
         }
 
+        // Check for Divine VIP Stake (Nether Star, Enchanted Golden Apple, Dragon Egg)
+        boolean isVip = false;
+        for (int i = 0; i < STAKE_SLOTS; i++) {
+            ItemStack st = items.get(i);
+            if (st.isOf(Items.ENCHANTED_GOLDEN_APPLE) || st.isOf(Items.NETHER_STAR) || st.isOf(Items.DRAGON_EGG)) {
+                isVip = true;
+                break;
+            }
+        }
+        if (isVip && player instanceof ServerPlayerEntity sp) {
+            sp.addStatusEffect(new net.minecraft.entity.effect.StatusEffectInstance(net.minecraft.entity.effect.StatusEffects.LUCK, 1200, 1));
+            sp.addStatusEffect(new net.minecraft.entity.effect.StatusEffectInstance(net.minecraft.entity.effect.StatusEffects.GLOWING, 400, 0));
+            sp.sendMessage(Text.literal("✨ БОЖЕСТВЕННАЯ СТАВКА! Госпожа Удача благоволит вам!").formatted(net.minecraft.util.Formatting.LIGHT_PURPLE, net.minecraft.util.Formatting.BOLD), true);
+            if (world instanceof ServerWorld sw) {
+                sw.playSound(null, pos, net.minecraft.sound.SoundEvents.BLOCK_BEACON_ACTIVATE, SoundCategory.BLOCKS, 1.0f, 1.2f);
+            }
+        }
+
+        if (isFever) {
+            feverSpins--;
+            if (player instanceof ServerPlayerEntity sp) {
+                sp.sendMessage(Text.literal("★ FEVER SPIN! (Осталось бесплатных спинов: " + feverSpins + ")").formatted(net.minecraft.util.Formatting.GOLD, net.minecraft.util.Formatting.BOLD), true);
+            }
+        }
+
         lastSpinAt = world.getTime();
         activePlayer = (player != null) ? player.getUuid() : null;
 
-        // Clear stake items atomically on server
+        // Clear stake items atomically on server (if not free fever spin with empty slots)
         for (int i = 0; i < STAKE_SLOTS; i++) {
             items.set(i, ItemStack.EMPTY);
         }
@@ -268,7 +306,7 @@ public class Lucky7BlockEntity extends BlockEntity implements Inventory, Extende
         spins++;
 
         // Roll outcome and map to exact reel positions
-        rollOutcome(value);
+        rollOutcome(value, isFever, isVip);
 
         spinning = true;
         spinStart = world.getTime();
@@ -284,15 +322,30 @@ public class Lucky7BlockEntity extends BlockEntity implements Inventory, Extende
         return true;
     }
 
-    private void rollOutcome(int stakeVal) {
+    private boolean feverTriggeredThisSpin = false;
+    private boolean coinShowerTriggeredThisSpin = false;
+
+    private void rollOutcome(int stakeVal, boolean isFever, boolean isVip) {
         ensureCanonicalPrizes();
-        ProbabilityProfile profile = ProbabilityCalculator.calculate(stakeVal, Lucky7Config.INSTANCE.probabilitySettings());
-        double roll = (world != null ? world.getRandom().nextDouble() : Math.random());
-        WinCategory category = profile.choose(roll);
+        feverTriggeredThisSpin = false;
+        coinShowerTriggeredThisSpin = false;
+
+        var rng = world != null ? world.getRandom() : net.minecraft.util.math.random.Random.create();
+        WinCategory category;
+
+        if (isVip) {
+            category = rng.nextFloat() < 0.60f ? WinCategory.JACKPOT : WinCategory.BIG_WIN;
+        } else if (isFever) {
+            float f = rng.nextFloat();
+            category = (f < 0.35f) ? WinCategory.JACKPOT : (f < 0.70f ? WinCategory.BIG_WIN : WinCategory.MEDIUM_WIN);
+        } else {
+            ProbabilityProfile profile = ProbabilityCalculator.calculate(stakeVal, Lucky7Config.INSTANCE.probabilitySettings());
+            double roll = (world != null ? world.getRandom().nextDouble() : Math.random());
+            category = profile.choose(roll);
+        }
         pendingCategory = category;
 
         int finalReel0, finalReel1, finalReel2;
-        var rng = world != null ? world.getRandom() : net.minecraft.util.math.random.Random.create();
 
         switch (category) {
             case JACKPOT -> {
@@ -309,11 +362,20 @@ public class Lucky7BlockEntity extends BlockEntity implements Inventory, Extende
                 pendingPrize = showcaseItem.isEmpty() ? new ItemStack(Items.NETHERITE_BLOCK, 16) : showcaseItem.copy();
             }
             case BIG_WIN -> {
-                ReelSymbol[] bigSymbols = {ReelSymbol.BAR, ReelSymbol.DOUBLE_BAR, ReelSymbol.CROWN, ReelSymbol.DIAMOND};
-                ReelSymbol sym = bigSymbols[rng.nextInt(bigSymbols.length)];
-                finalReel0 = ReelLayout.positionOf(0, sym);
-                finalReel1 = ReelLayout.positionOf(1, sym);
-                finalReel2 = ReelLayout.positionOf(2, sym);
+                // Rare chance to activate FEVER MODE on 3 Clovers or 3 Stars!
+                if (!isFever && rng.nextFloat() < 0.25f) {
+                    ReelSymbol sym = (rng.nextBoolean()) ? ReelSymbol.CLOVER : ReelSymbol.STAR;
+                    finalReel0 = ReelLayout.positionOf(0, sym);
+                    finalReel1 = ReelLayout.positionOf(1, sym);
+                    finalReel2 = ReelLayout.positionOf(2, sym);
+                    feverTriggeredThisSpin = true;
+                } else {
+                    ReelSymbol[] bigSymbols = {ReelSymbol.BAR, ReelSymbol.DOUBLE_BAR, ReelSymbol.CROWN, ReelSymbol.DIAMOND};
+                    ReelSymbol sym = bigSymbols[rng.nextInt(bigSymbols.length)];
+                    finalReel0 = ReelLayout.positionOf(0, sym);
+                    finalReel1 = ReelLayout.positionOf(1, sym);
+                    finalReel2 = ReelLayout.positionOf(2, sym);
+                }
                 pendingPayoutValue = (int) Math.round(stakeVal * Lucky7Config.INSTANCE.bigMultiplier);
 
                 // Pure uniform random across all 9 Big Win prizes (Row 1: slots 9..17)
@@ -322,11 +384,19 @@ public class Lucky7BlockEntity extends BlockEntity implements Inventory, Extende
                 pendingPrize = showcaseItem.isEmpty() ? new ItemStack(Items.DIAMOND, 64) : showcaseItem.copy();
             }
             case MEDIUM_WIN -> {
-                ReelSymbol[] medSymbols = {ReelSymbol.BELL, ReelSymbol.STAR, ReelSymbol.HORSESHOE, ReelSymbol.CLOVER, ReelSymbol.COIN};
-                ReelSymbol sym = medSymbols[rng.nextInt(medSymbols.length)];
-                finalReel0 = ReelLayout.positionOf(0, sym);
-                finalReel1 = ReelLayout.positionOf(1, sym);
-                finalReel2 = ReelLayout.positionOf(2, sym);
+                // 3 Coins triggers Coin Shower Easter Egg!
+                if (rng.nextFloat() < 0.20f) {
+                    finalReel0 = ReelLayout.positionOf(0, ReelSymbol.COIN);
+                    finalReel1 = ReelLayout.positionOf(1, ReelSymbol.COIN);
+                    finalReel2 = ReelLayout.positionOf(2, ReelSymbol.COIN);
+                    coinShowerTriggeredThisSpin = true;
+                } else {
+                    ReelSymbol[] medSymbols = {ReelSymbol.BELL, ReelSymbol.HORSESHOE, ReelSymbol.CLOVER, ReelSymbol.STAR};
+                    ReelSymbol sym = medSymbols[rng.nextInt(medSymbols.length)];
+                    finalReel0 = ReelLayout.positionOf(0, sym);
+                    finalReel1 = ReelLayout.positionOf(1, sym);
+                    finalReel2 = ReelLayout.positionOf(2, sym);
+                }
                 pendingPayoutValue = (int) Math.round(stakeVal * Lucky7Config.INSTANCE.mediumMultiplier);
 
                 // Pure uniform random across all 9 Medium Win prizes (Row 2: slots 18..26)
@@ -342,7 +412,6 @@ public class Lucky7BlockEntity extends BlockEntity implements Inventory, Extende
                 finalReel2 = ReelLayout.positionOf(2, sym);
                 pendingPayoutValue = (int) Math.round(stakeVal * Lucky7Config.INSTANCE.smallMultiplier);
 
-                // Full stack directly from Row 2 (slots 18..26)
                 int prizeIndex = 18 + rng.nextInt(9);
                 ItemStack showcaseItem = items.get(STAKE_SLOTS + prizeIndex);
                 pendingPrize = showcaseItem.isEmpty() ? new ItemStack(Items.IRON_INGOT, 64) : showcaseItem.copy();
@@ -359,7 +428,6 @@ public class Lucky7BlockEntity extends BlockEntity implements Inventory, Extende
                 finalReel2 = ReelLayout.positionOf(2, diffSym);
                 pendingPayoutValue = (int) Math.round(stakeVal * Lucky7Config.INSTANCE.pairMultiplier);
 
-                // Full stack directly from Row 2 (slots 18..26)
                 int prizeIndex = 18 + rng.nextInt(9);
                 ItemStack showcaseItem = items.get(STAKE_SLOTS + prizeIndex);
                 pendingPrize = showcaseItem.isEmpty() ? new ItemStack(Items.IRON_INGOT, 64) : showcaseItem.copy();
@@ -414,11 +482,42 @@ public class Lucky7BlockEntity extends BlockEntity implements Inventory, Extende
     }
 
     public static void clientTick(net.minecraft.world.World world, BlockPos pos, BlockState state, Lucky7BlockEntity be) {
-        if (be.spinning && be.clientSpinStart < 0) {
-            be.clientSpinStart = System.currentTimeMillis();
-        }
-        if (!be.spinning) {
+        if (be.spinning) {
+            if (be.clientSpinStart < 0) {
+                be.clientSpinStart = System.currentTimeMillis();
+                be.lastReelStoppedClient = -1;
+            }
+            long elapsed = System.currentTimeMillis() - be.clientSpinStart;
+            float progress = Math.min(1.0f, (float) elapsed / (be.spinTicks * 50.0f));
+
+            // Tactile mechanical stop clicks for each reel
+            if (progress >= 0.50f && be.lastReelStoppedClient < 0) {
+                be.lastReelStoppedClient = 0;
+                world.playSound(pos.getX() + 0.5, pos.getY() + 1.4, pos.getZ() + 0.5,
+                    net.minecraft.sound.SoundEvents.BLOCK_PISTON_EXTEND, SoundCategory.BLOCKS, 0.75f, 1.35f, false);
+            }
+            if (progress >= 0.75f && be.lastReelStoppedClient < 1) {
+                be.lastReelStoppedClient = 1;
+                world.playSound(pos.getX() + 0.5, pos.getY() + 1.4, pos.getZ() + 0.5,
+                    net.minecraft.sound.SoundEvents.BLOCK_PISTON_EXTEND, SoundCategory.BLOCKS, 0.85f, 1.65f, false);
+            }
+            if (progress >= 1.00f && be.lastReelStoppedClient < 2) {
+                be.lastReelStoppedClient = 2;
+                world.playSound(pos.getX() + 0.5, pos.getY() + 1.4, pos.getZ() + 0.5,
+                    net.minecraft.sound.SoundEvents.BLOCK_ANVIL_PLACE, SoundCategory.BLOCKS, 0.55f, 1.85f, false);
+            }
+        } else {
             be.clientSpinStart = -1;
+            be.lastReelStoppedClient = -1;
+        }
+
+        // Ambient mystical flame particles during FEVER MODE
+        if (be.feverSpins > 0 && world.getRandom().nextFloat() < 0.35f) {
+            world.addParticle(ParticleTypes.SOUL_FIRE_FLAME,
+                pos.getX() + 0.2 + world.getRandom().nextDouble() * 0.6,
+                pos.getY() + 1.8 + world.getRandom().nextDouble() * 0.3,
+                pos.getZ() + 0.2 + world.getRandom().nextDouble() * 0.6,
+                0.0, 0.02, 0.0);
         }
     }
 
@@ -448,7 +547,7 @@ public class Lucky7BlockEntity extends BlockEntity implements Inventory, Extende
             bestWin = Math.max(bestWin, pendingPayoutValue);
             totalPaid += pendingPayoutValue;
 
-            deliverPrize(player, pendingPrize.copy());
+            deliverPrize(serverWorld, player, pendingPrize.copy());
             history.add(0, pendingCategory.name() + ": " + pendingPrize.getCount() + "x " + Registries.ITEM.getId(pendingPrize.getItem()).getPath());
 
             if (pendingCategory == WinCategory.JACKPOT) {
@@ -458,6 +557,25 @@ public class Lucky7BlockEntity extends BlockEntity implements Inventory, Extende
                 playSound(Lucky7Sounds.SMALL_WIN, 1.0f);
                 spawnCelebrationParticles(serverWorld, false);
             }
+
+            // Trigger FEVER MODE Activation event!
+            if (feverTriggeredThisSpin) {
+                feverSpins = 3;
+                if (player instanceof ServerPlayerEntity sp) {
+                    sp.sendMessage(Text.literal("🔥 FEVER MODE АКТИВИРОВАН! 3 БЕСПЛАТНЫХ СУПЕР-СПИНА! 🔥").formatted(net.minecraft.util.Formatting.GOLD, net.minecraft.util.Formatting.BOLD), false);
+                }
+                serverWorld.playSound(null, pos, net.minecraft.sound.SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundCategory.BLOCKS, 1.0f, 1.0f);
+                serverWorld.playSound(null, pos, net.minecraft.sound.SoundEvents.BLOCK_BELL_RESONATE, SoundCategory.BLOCKS, 1.0f, 1.2f);
+                serverWorld.spawnParticles(ParticleTypes.TOTEM_OF_UNDYING, pos.getX() + 0.5, pos.getY() + 1.8, pos.getZ() + 0.5, 60, 0.4, 0.4, 0.4, 0.2);
+            }
+
+            // Coin Shower Easter Egg!
+            if (coinShowerTriggeredThisSpin) {
+                if (player instanceof ServerPlayerEntity sp) {
+                    sp.sendMessage(Text.literal("🪙 МОНЕТНЫЙ ДОЖДЬ! +64 золотых самородка из лотка!").formatted(net.minecraft.util.Formatting.YELLOW, net.minecraft.util.Formatting.BOLD), true);
+                }
+                ejectFromHopper(serverWorld, new ItemStack(Items.GOLD_NUGGET, 64), 0.22);
+            }
         } else {
             // Secret Easter Egg: 3 Skulls curse! (deals 3 HP damage, player loses 1.5 hearts)
             if (reels[0] == ReelLayout.positionOf(0, ReelSymbol.SKULL) &&
@@ -466,7 +584,7 @@ public class Lucky7BlockEntity extends BlockEntity implements Inventory, Extende
                 if (player != null) {
                     player.damage(serverWorld.getDamageSources().magic(), 3.0f);
                     serverWorld.playSound(null, pos, net.minecraft.sound.SoundEvents.ENTITY_WITHER_HURT, SoundCategory.BLOCKS, 1.0f, 0.8f);
-                    serverWorld.spawnParticles(ParticleTypes.SMOKE, pos.getX() + 0.5, pos.getY() + 1.2, pos.getZ() + 0.5, 20, 0.25, 0.25, 0.25, 0.05);
+                    serverWorld.spawnParticles(ParticleTypes.SMOKE, pos.getX() + 0.5, pos.getY() + 1.2, pos.getZ() + 0.5, 25, 0.25, 0.25, 0.25, 0.05);
                 }
             }
             playSound(Lucky7Sounds.REEL_STOP, 1.0f);
@@ -485,23 +603,32 @@ public class Lucky7BlockEntity extends BlockEntity implements Inventory, Extende
         markDirtyAndSync();
     }
 
-    private void deliverPrize(PlayerEntity player, ItemStack stack) {
+    private void deliverPrize(ServerWorld serverWorld, PlayerEntity player, ItemStack stack) {
         if (player instanceof ServerPlayerEntity sp) {
             String prizeName = stack.getCount() + "x " + stack.getName().getString();
             sp.sendMessage(Text.literal("★ ВЫИГРЫШ: " + prizeName).formatted(net.minecraft.util.Formatting.GREEN, net.minecraft.util.Formatting.BOLD), true);
         }
-        if (player != null && player.getInventory().insertStack(stack)) {
-            player.getInventory().markDirty();
-            if (player instanceof ServerPlayerEntity sp) {
-                sp.currentScreenHandler.sendContentUpdates();
-            }
-            return;
-        }
-        if (world != null) {
-            ItemEntity entity = new ItemEntity(world, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, stack);
-            entity.setVelocity(0.0, 0.15, 0.0);
-            world.spawnEntity(entity);
-        }
+        // Eject item directly out of the bottom physical hopper payout tray!
+        ejectFromHopper(serverWorld, stack, 0.18);
+        serverWorld.playSound(null, pos, net.minecraft.sound.SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, SoundCategory.BLOCKS, 1.0f, 1.2f);
+        serverWorld.playSound(null, pos, net.minecraft.sound.SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME, SoundCategory.BLOCKS, 0.8f, 1.5f);
+    }
+
+    private void ejectFromHopper(ServerWorld serverWorld, ItemStack stack, double speed) {
+        Direction facing = Direction.NORTH;
+        try {
+            facing = getCachedState().get(Lucky7Block.FACING);
+        } catch (Exception ignored) {}
+
+        double fx = pos.getX() + 0.5 + facing.getOffsetX() * 0.52;
+        double fy = pos.getY() + 0.32;
+        double fz = pos.getZ() + 0.5 + facing.getOffsetZ() * 0.52;
+
+        ItemEntity entity = new ItemEntity(serverWorld, fx, fy, fz, stack);
+        double spreadX = (serverWorld.getRandom().nextDouble() - 0.5) * 0.06;
+        double spreadZ = (serverWorld.getRandom().nextDouble() - 0.5) * 0.06;
+        entity.setVelocity(facing.getOffsetX() * speed + spreadX, 0.18, facing.getOffsetZ() * speed + spreadZ);
+        serverWorld.spawnEntity(entity);
     }
 
     private void spawnCelebrationParticles(ServerWorld world, boolean jackpot) {
@@ -509,10 +636,16 @@ public class Lucky7BlockEntity extends BlockEntity implements Inventory, Extende
         double y = pos.getY() + 1.2;
         double z = pos.getZ() + 0.5;
         if (jackpot) {
-            world.spawnParticles(ParticleTypes.TOTEM_OF_UNDYING, x, y, z, 40, 0.4, 0.4, 0.4, 0.15);
-            world.spawnParticles(ParticleTypes.FIREWORK, x, y, z, 30, 0.3, 0.5, 0.3, 0.1);
+            world.spawnParticles(ParticleTypes.TOTEM_OF_UNDYING, x, y, z, 50, 0.4, 0.4, 0.4, 0.15);
+            world.spawnParticles(ParticleTypes.FIREWORK, x, y + 0.8, z, 50, 0.4, 0.6, 0.4, 0.15);
+            world.playSound(null, pos, net.minecraft.sound.SoundEvents.ENTITY_FIREWORK_ROCKET_BLAST, SoundCategory.BLOCKS, 1.0f, 1.0f);
+            world.playSound(null, pos, net.minecraft.sound.SoundEvents.ENTITY_FIREWORK_ROCKET_TWINKLE, SoundCategory.BLOCKS, 1.0f, 1.0f);
+            world.playSound(null, pos, net.minecraft.sound.SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundCategory.BLOCKS, 1.0f, 1.0f);
+
+            // Bonus shower of 16 gold nuggets cascading into the tray
+            ejectFromHopper(world, new ItemStack(Items.GOLD_NUGGET, 16), 0.22);
         } else {
-            world.spawnParticles(ParticleTypes.HAPPY_VILLAGER, x, y, z, 15, 0.3, 0.3, 0.3, 0.05);
+            world.spawnParticles(ParticleTypes.HAPPY_VILLAGER, x, y, z, 20, 0.3, 0.3, 0.3, 0.05);
         }
     }
 
@@ -572,6 +705,7 @@ public class Lucky7BlockEntity extends BlockEntity implements Inventory, Extende
         props.set(13, totalWagered);
         props.set(14, totalPaid);
         props.set(15, stakeItems());
+        props.set(16, feverSpins);
     }
 
     public PropertyDelegate propertyDelegate() {
@@ -645,6 +779,7 @@ public class Lucky7BlockEntity extends BlockEntity implements Inventory, Extende
         nbt.putInt("totalPaid", totalPaid);
         nbt.putInt("pendingValue", pendingPayoutValue);
         nbt.putInt("pendingCategory", pendingCategory.ordinal());
+        nbt.putInt("feverSpins", feverSpins);
 
         NbtList list = new NbtList();
         for (String line : history) list.add(NbtString.of(line));
@@ -687,6 +822,7 @@ public class Lucky7BlockEntity extends BlockEntity implements Inventory, Extende
 
         int catIdx = nbt.getInt("pendingCategory");
         pendingCategory = (catIdx >= 0 && catIdx < WinCategory.values().length) ? WinCategory.values()[catIdx] : WinCategory.NO_WIN;
+        feverSpins = nbt.getInt("feverSpins");
 
         history.clear();
         NbtList list = nbt.getList("history", NbtElement.STRING_TYPE);
