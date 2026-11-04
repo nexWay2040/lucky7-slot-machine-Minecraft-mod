@@ -85,6 +85,12 @@ public final class Lucky7Screen extends HandledScreen<Lucky7ScreenHandler> {
     }
 
     @Override
+    protected void drawForeground(DrawContext ctx, int mouseX, int mouseY) {
+        // Intentionally left blank: custom styled titles and pool are drawn in drawBackground,
+        // preventing double title rendering and displaced inventory labels.
+    }
+
+    @Override
     protected void drawSlot(DrawContext ctx, net.minecraft.screen.slot.Slot slot) {
         if (page != 0) return; // Completely hide all slot rendering when modal dialog is active!
         super.drawSlot(ctx, slot);
@@ -170,7 +176,7 @@ public final class Lucky7Screen extends HandledScreen<Lucky7ScreenHandler> {
         // Middle: Live Probability & Prize Tier Alignment Panel (x=76..174, y=24..92)
         ctx.fill(x + 76, y + 24, x + 174, y + 92, 0x44000000);
         ctx.drawText(textRenderer, Text.literal("УРОВЕНЬ // ШАНС").formatted(Formatting.YELLOW), x + 78, y + 26, 0xFFFFE060, false);
-        drawProbabilities(ctx, x + 78, y + 43);
+        drawProbabilities(ctx, x + 78, y + 42);
 
         // Right: Prize Showcase Panel (3x9 slots: x=176..344, y=24..92)
         ctx.fill(x + 176, y + 24, x + 342, y + 92, 0x55000000);

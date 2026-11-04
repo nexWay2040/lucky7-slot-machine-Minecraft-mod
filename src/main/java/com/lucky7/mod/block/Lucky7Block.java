@@ -139,9 +139,58 @@ public class Lucky7Block extends BlockWithEntity {
         return world.getBlockEntity(entityPos) instanceof Lucky7BlockEntity machine ? machine : null;
     }
 
+    private boolean handlePhysicalInteraction(BlockState state, World world, BlockPos pos, PlayerEntity player, BlockHitResult hit) {
+        Direction facing = state.get(FACING);
+        Direction rightSide = facing.rotateYClockwise();
+
+        boolean isRightSideFace = (hit.getSide() == rightSide);
+
+        double dx = hit.getPos().x - pos.getX();
+        double dy = hit.getPos().y - pos.getY() + (state.get(HALF) == DoubleBlockHalf.UPPER ? 1.0 : 0.0);
+        double dz = hit.getPos().z - pos.getZ();
+
+        double localX, localZ;
+        switch (facing) {
+            case NORTH -> { localX = 1.0 - dx; localZ = 1.0 - dz; }
+            case SOUTH -> { localX = dx; localZ = dz; }
+            case EAST  -> { localX = dz; localZ = 1.0 - dx; }
+            case WEST  -> { localX = 1.0 - dz; localZ = dx; }
+            default    -> { localX = dx; localZ = dz; }
+        }
+        double localY = dy;
+
+        // Click on the lever (right side X >= 0.80), button on console deck, or Sneak+RightClick
+        boolean isLeverHit = isRightSideFace || (localX >= 0.80);
+        boolean isButtonHit = (localZ >= 0.84 && localY >= 0.90 && localY <= 1.25 && localX >= 0.15 && localX <= 0.48);
+        boolean isSneakSpin = player.isSneaking();
+
+        if (isLeverHit || isButtonHit || isSneakSpin) {
+            Lucky7BlockEntity machine = getMachine(world, pos, state);
+            if (machine != null) {
+                if (machine.isSpinning()) {
+                    return true;
+                }
+                if (machine.stakeValue() > 0) {
+                    machine.startSpin(player);
+                } else {
+                    if (player instanceof ServerPlayerEntity sp) {
+                        sp.sendMessage(net.minecraft.text.Text.literal("⚠ Положите ставку в автомат (кликните по стеклу витрины)!").formatted(net.minecraft.util.Formatting.YELLOW), true);
+                    }
+                    world.playSound(null, pos, com.lucky7.mod.sound.Lucky7Sounds.BUTTON_CLICK, net.minecraft.sound.SoundCategory.BLOCKS, 0.85f, 0.6f);
+                }
+            }
+            return true;
+        }
+
+        return false;
+    }
+
     @Override
     protected ItemActionResult onUseWithItem(ItemStack stack, BlockState state, World world, BlockPos pos, PlayerEntity player, net.minecraft.util.Hand hand, BlockHitResult hit) {
         if (world.isClient) return ItemActionResult.SUCCESS;
+        if (handlePhysicalInteraction(state, world, pos, player, hit)) {
+            return ItemActionResult.SUCCESS;
+        }
         Lucky7BlockEntity machine = getMachine(world, pos, state);
         if (machine != null && player instanceof ServerPlayerEntity serverPlayer) {
             machine.addViewer(player);
@@ -153,12 +202,40 @@ public class Lucky7Block extends BlockWithEntity {
     @Override
     protected ActionResult onUse(BlockState state, World world, BlockPos pos, PlayerEntity player, BlockHitResult hit) {
         if (world.isClient) return ActionResult.SUCCESS;
+        if (handlePhysicalInteraction(state, world, pos, player, hit)) {
+            return ActionResult.SUCCESS;
+        }
         Lucky7BlockEntity machine = getMachine(world, pos, state);
         if (machine != null && player instanceof ServerPlayerEntity serverPlayer) {
             machine.addViewer(player);
             serverPlayer.openHandledScreen(machine);
         }
         return ActionResult.SUCCESS;
+    }
+
+    @Override
+    protected boolean hasComparatorOutput(BlockState state) {
+        return true;
+    }
+
+    @Override
+    protected int getComparatorOutput(BlockState state, World world, BlockPos pos) {
+        Lucky7BlockEntity machine = getMachine(world, pos, state);
+        return machine != null ? machine.getComparatorOutput() : 0;
+    }
+
+    @Override
+    protected void neighborUpdate(BlockState state, World world, BlockPos pos, Block sourceBlock, BlockPos sourcePos, boolean notify) {
+        super.neighborUpdate(state, world, pos, sourceBlock, sourcePos, notify);
+        if (!world.isClient && state.get(HALF) == DoubleBlockHalf.LOWER) {
+            boolean powered = world.isReceivingRedstonePower(pos) || world.isReceivingRedstonePower(pos.up());
+            if (powered) {
+                Lucky7BlockEntity machine = getMachine(world, pos, state);
+                if (machine != null && !machine.isSpinning() && machine.stakeValue() > 0) {
+                    machine.startSpin(null);
+                }
+            }
+        }
     }
 
     @Override

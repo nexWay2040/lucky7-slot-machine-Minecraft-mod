@@ -89,10 +89,10 @@ public final class Lucky7BlockEntityRenderer implements BlockEntityRenderer<Luck
         // =====================================================================
         // 3. SLANTED CONTROL DECK & BUTTONS (Y: 0.92 -> 1.10)
         // =====================================================================
-        // Slanted deck shelf jutting forward towards player
-        solidBox(matrices, vc, DECK, 0.06f, 0.92f, 0.08f, 0.94f, 1.08f, 1.02f, light);
+        // Slanted deck shelf jutting forward towards player (extends cleanly to Z = 1.07)
+        solidBox(matrices, vc, DECK, 0.06f, 0.92f, 0.08f, 0.94f, 1.08f, 1.07f, light);
         // Sleek refined front lip edge trim
-        solidBox(matrices, vc, GOLD, 0.05f, 1.04f, 1.00f, 0.95f, 1.09f, 1.03f, light);
+        solidBox(matrices, vc, GOLD, 0.05f, 1.04f, 1.05f, 0.95f, 1.09f, 1.08f, light);
 
         // Big Red SPIN Button on deck (quick spring press animation)
         float btnHeight = 0.055f;
@@ -103,16 +103,16 @@ public final class Lucky7BlockEntityRenderer implements BlockEntityRenderer<Luck
                 btnHeight = 0.055f - press * 0.035f;
             }
         }
-        // Bezel socket rim around red button - shifted forward into open deck (Z: 0.92 -> 1.01, never inside window)
-        solidBox(matrices, vc, GOLD, 0.21f, 1.08f, 0.92f, 0.41f, 1.095f, 1.005f, light);
+        // Bezel socket rim around red button - placed forward on deck (Z: 0.96 -> 1.05, in front of window frame at Z <= 0.94)
+        solidBox(matrices, vc, GOLD, 0.20f, 1.08f, 0.96f, 0.42f, 1.095f, 1.05f, light);
         // Solid black inner core filling the socket completely (100% non-transparent)
-        solidBox(matrices, vc, CABINET, 0.225f, 1.08f, 0.93f, 0.395f, 1.08f + btnHeight - 0.002f, 0.995f, light);
+        solidBox(matrices, vc, CABINET, 0.215f, 1.08f, 0.965f, 0.405f, 1.08f + btnHeight - 0.002f, 1.045f, light);
         // Red button on top
-        solidBox(matrices, vc, BUTTON, 0.23f, 1.08f, 0.935f, 0.39f, 1.08f + btnHeight, 0.99f, light);
+        solidBox(matrices, vc, BUTTON, 0.22f, 1.08f, 0.97f, 0.40f, 1.08f + btnHeight, 1.04f, light);
 
-        // Coin slot housing on right side of deck
-        solidBox(matrices, vc, GOLD, 0.68f, 1.08f, 0.92f, 0.80f, 1.11f, 0.98f, light);
-        solidBox(matrices, vc, INTERIOR, 0.72f, 1.09f, 0.93f, 0.76f, 1.11f, 0.97f, light);
+        // Coin slot housing on right side of deck (Z: 0.96 -> 1.03)
+        solidBox(matrices, vc, GOLD, 0.68f, 1.08f, 0.96f, 0.80f, 1.11f, 1.03f, light);
+        solidBox(matrices, vc, INTERIOR, 0.72f, 1.09f, 0.97f, 0.76f, 1.11f, 1.02f, light);
 
         // =====================================================================
         // 4. REEL CHAMBER & GLASS HOUSING (Y: 1.14 -> 1.76)
@@ -189,12 +189,12 @@ public final class Lucky7BlockEntityRenderer implements BlockEntityRenderer<Luck
 
     private void drawLever(Lucky7BlockEntity be, float tickDelta, MatrixStack matrices, VertexConsumerProvider vc, int light) {
         // Pivot housing base mounted flush against Right Side Wall (wall is at X = 0.96f)
-        // Extends outward from 0.96f to 1.06f (touches the cabinet wall without penetrating inside or floating)
-        solidBox(matrices, vc, GOLD, 0.96f, 1.28f, 0.46f, 1.06f, 1.38f, 0.58f, light);
+        // Embedded slightly into the wall at X = 0.955f (no gap) and extends outward to X = 1.06f
+        solidBox(matrices, vc, GOLD, 0.955f, 1.28f, 0.46f, 1.06f, 1.38f, 0.58f, light);
 
         matrices.push();
-        // Pivot center placed at X = 1.055f so the entire knob (half-width 0.045f) is at X >= 1.01f, well clear of the wall (X = 0.96f)
-        matrices.translate(1.055, 1.33, 0.52);
+        // Pivot center placed at X = 1.05f so the entire knob (radius 0.045f) is at X >= 1.005f, well clear of the wall (X = 0.96f)
+        matrices.translate(1.05, 1.33, 0.52);
 
         // Pull angle animation
         float pullAngle = 0.0f;
@@ -208,13 +208,16 @@ public final class Lucky7BlockEntityRenderer implements BlockEntityRenderer<Luck
         matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(-pullAngle));
 
         // Metal lever rod extending upwards
-        solidBox(matrices, vc, GOLD, -0.02f, 0.0f, -0.02f, 0.02f, 0.38f, 0.02f, light);
+        solidBox(matrices, vc, GOLD, -0.018f, 0.0f, -0.018f, 0.018f, 0.38f, 0.018f, light);
+
+        // Golden collar ring connecting rod to knob
+        solidBox(matrices, vc, GOLD, -0.028f, 0.34f, -0.028f, 0.028f, 0.365f, 0.028f, light);
 
         // Solid black inner socket core filling the interior completely (no hollow void)
-        solidBox(matrices, vc, CABINET, -0.035f, 0.35f, -0.035f, 0.035f, 0.45f, 0.035f, light);
+        solidBox(matrices, vc, CABINET, -0.038f, 0.355f, -0.038f, 0.038f, 0.455f, 0.038f, light);
 
-        // Solid clean red ball knob cube on top (texture removed, zero wall clipping)
-        solidBox(matrices, vc, BUTTON, -0.045f, 0.36f, -0.045f, 0.045f, 0.46f, 0.045f, light);
+        // Solid ruby chrome ball knob cube on top using KNOB texture (100% solid, zero wall clipping)
+        solidBox(matrices, vc, KNOB, -0.045f, 0.355f, -0.045f, 0.045f, 0.455f, 0.045f, light);
 
         matrices.pop();
     }

@@ -84,6 +84,9 @@ public class Lucky7BlockEntity extends BlockEntity implements Inventory, Extende
     private final List<UUID> viewers = new ArrayList<>();
     private long clientSpinStart = -1;
 
+    private int redstoneOutput = 0;
+    private int redstonePulseTicks = 0;
+
     public Lucky7BlockEntity(BlockPos pos, BlockState state) {
         super(Lucky7BlockEntities.SLOT_MACHINE, pos, state);
         ensureCanonicalPrizes();
@@ -250,7 +253,7 @@ public class Lucky7BlockEntity extends BlockEntity implements Inventory, Extende
         }
 
         lastSpinAt = world.getTime();
-        activePlayer = player.getUuid();
+        activePlayer = (player != null) ? player.getUuid() : null;
 
         // Clear stake items atomically on server
         for (int i = 0; i < STAKE_SLOTS; i++) {
@@ -275,8 +278,9 @@ public class Lucky7BlockEntity extends BlockEntity implements Inventory, Extende
         playSound(Lucky7Sounds.MACHINE_START, 1.0f);
         playSound(Lucky7Sounds.REEL_SPIN, 0.85f);
 
+        String pName = (player != null) ? player.getName().getString() : "Redstone";
         Lucky7Mod.LOGGER.info("Spin STARTED by {}: wager = {}, category = {}, reel positions = [{}, {}, {}]",
-            player.getName().getString(), value, pendingCategory, reels[0], reels[1], reels[2]);
+            pName, value, pendingCategory, reels[0], reels[1], reels[2]);
         return true;
     }
 
@@ -398,6 +402,14 @@ public class Lucky7BlockEntity extends BlockEntity implements Inventory, Extende
         if (be.spinning && serverWorld.getTime() >= be.spinStart + be.spinTicks) {
             be.finishSpin(serverWorld);
         }
+        if (be.redstonePulseTicks > 0) {
+            be.redstonePulseTicks--;
+            if (be.redstonePulseTicks == 0) {
+                be.redstoneOutput = 0;
+                serverWorld.updateComparators(pos, state.getBlock());
+                serverWorld.updateComparators(pos.up(), state.getBlock());
+            }
+        }
         be.updateProperties();
     }
 
@@ -421,7 +433,18 @@ public class Lucky7BlockEntity extends BlockEntity implements Inventory, Extende
             if (pendingCategory == WinCategory.JACKPOT) {
                 jackpots++;
                 jackpotPool = 100;
+                redstoneOutput = 15; // Max signal 15 on Jackpot!
+            } else if (pendingCategory == WinCategory.BIG_WIN) {
+                redstoneOutput = 10;
+            } else if (pendingCategory == WinCategory.MEDIUM_WIN) {
+                redstoneOutput = 6;
+            } else {
+                redstoneOutput = 3;
             }
+            redstonePulseTicks = 80; // 4 seconds active pulse
+            serverWorld.updateComparators(pos, getCachedState().getBlock());
+            serverWorld.updateComparators(pos.up(), getCachedState().getBlock());
+
             bestWin = Math.max(bestWin, pendingPayoutValue);
             totalPaid += pendingPayoutValue;
 
@@ -560,6 +583,7 @@ public class Lucky7BlockEntity extends BlockEntity implements Inventory, Extende
     public int[] reels() { return reels; }
     public int jackpotPool() { return jackpotPool; }
     public List<String> historyLines() { return history; }
+    public int getComparatorOutput() { return redstoneOutput; }
 
     public void startSpinClient() {
         this.spinning = true;
