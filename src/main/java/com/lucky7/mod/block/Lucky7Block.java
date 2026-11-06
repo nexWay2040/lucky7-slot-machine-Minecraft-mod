@@ -170,7 +170,7 @@ public class Lucky7Block extends BlockWithEntity {
                 if (machine.isSpinning()) {
                     return true;
                 }
-                if (machine.stakeValue() > 0) {
+                if (machine.stakeValue() > 0 || machine.isFeverMode()) {
                     machine.startSpin(player);
                 } else {
                     if (player instanceof ServerPlayerEntity sp) {
@@ -231,7 +231,7 @@ public class Lucky7Block extends BlockWithEntity {
             boolean powered = world.isReceivingRedstonePower(pos) || world.isReceivingRedstonePower(pos.up());
             if (powered) {
                 Lucky7BlockEntity machine = getMachine(world, pos, state);
-                if (machine != null && !machine.isSpinning() && machine.stakeValue() > 0) {
+                if (machine != null && !machine.isSpinning() && (machine.stakeValue() > 0 || machine.isFeverMode())) {
                     machine.startSpin(null);
                 }
             }

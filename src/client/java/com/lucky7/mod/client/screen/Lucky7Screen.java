@@ -25,6 +25,7 @@ public final class Lucky7Screen extends HandledScreen<Lucky7ScreenHandler> {
     private int page = 0; // 0 = main, 1 = info, 2 = stats
 
     private ButtonWidget startBtn;
+    private ButtonWidget freeSpinBtn;
     private ButtonWidget returnBtn;
     private ButtonWidget infoBtn;
     private ButtonWidget statsBtn;
@@ -45,7 +46,7 @@ public final class Lucky7Screen extends HandledScreen<Lucky7ScreenHandler> {
 
         startBtn = addDrawableChild(ButtonWidget.builder(Text.translatable("gui.lucky7.start"), b -> {
             if (handler.spinning()) return;
-            if (handler.stakeValue() <= 0) {
+            if (handler.stakeValue() <= 0 && !handler.isFeverMode()) {
                 errorMessage = "Положите руды или слитки в слоты СТАВКИ!";
                 errorTime = System.currentTimeMillis();
                 clickSound();
@@ -56,6 +57,14 @@ public final class Lucky7Screen extends HandledScreen<Lucky7ScreenHandler> {
             ClientPlayNetworking.send(new Lucky7ActionPayload(handler.machinePos(), 0));
             this.close(); // Automatically close GUI on start so player watches 3D reels spin!
         }).dimensions(x + 14, btnY, 52, 18).build());
+
+        freeSpinBtn = addDrawableChild(ButtonWidget.builder(Text.literal("🔥 БЕСПЛАТНЫЙ СПИН 🔥"), b -> {
+            if (handler.spinning()) return;
+            errorMessage = null;
+            clickSound();
+            ClientPlayNetworking.send(new Lucky7ActionPayload(handler.machinePos(), 0));
+            this.close();
+        }).dimensions(x + 14, btnY, 106, 18).build());
 
         returnBtn = addDrawableChild(ButtonWidget.builder(Text.translatable("gui.lucky7.return"), b -> {
             if (handler.spinning() || handler.stakeValue() <= 0) return;
@@ -108,12 +117,20 @@ public final class Lucky7Screen extends HandledScreen<Lucky7ScreenHandler> {
 
     @Override
     public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
+        boolean fever = handler.isFeverMode();
+        if (freeSpinBtn != null) {
+            freeSpinBtn.visible = (page == 0 && fever);
+            freeSpinBtn.active = !handler.spinning();
+            if (fever) {
+                freeSpinBtn.setMessage(Text.literal("🔥 БЕСПЛАТНЫЙ СПИН (" + handler.feverSpins() + ") 🔥").formatted(Formatting.GOLD, Formatting.BOLD));
+            }
+        }
         if (startBtn != null) {
-            startBtn.visible = (page == 0);
+            startBtn.visible = (page == 0 && !fever);
             startBtn.active = !handler.spinning();
         }
         if (returnBtn != null) {
-            returnBtn.visible = (page == 0);
+            returnBtn.visible = (page == 0 && !fever);
             returnBtn.active = !handler.spinning();
         }
         if (infoBtn != null) infoBtn.visible = (page == 0);
@@ -191,8 +208,13 @@ public final class Lucky7Screen extends HandledScreen<Lucky7ScreenHandler> {
         if (errorMessage != null && (System.currentTimeMillis() - errorTime) < 3500) {
             ctx.drawText(textRenderer, Text.literal("⚠ " + errorMessage).formatted(Formatting.RED, Formatting.BOLD), x + 16, y + 114, 0xFFFF4444, false);
         } else {
-            String valText = "СТАВКА: " + handler.stakeValue();
-            ctx.drawText(textRenderer, Text.literal(valText).formatted(Formatting.WHITE), x + 252, y + 98, 0xFFFFFFFF, false);
+            if (handler.isFeverMode()) {
+                String valText = "🔥 СПИНОВ: " + handler.feverSpins();
+                ctx.drawText(textRenderer, Text.literal(valText).formatted(Formatting.GOLD, Formatting.BOLD), x + 242, y + 98, 0xFFFFD700, false);
+            } else {
+                String valText = "СТАВКА: " + handler.stakeValue();
+                ctx.drawText(textRenderer, Text.literal(valText).formatted(Formatting.WHITE), x + 252, y + 98, 0xFFFFFFFF, false);
+            }
         }
 
         // Player Inventory Panel (Centered below: x=95..261, y=116..196)
