@@ -5,6 +5,7 @@ import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.Block;
+import net.minecraft.sound.BlockSoundGroup;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroup;
@@ -19,7 +20,8 @@ import net.minecraft.text.Text;
 public final class Lucky7Blocks {
     public static final Block SLOT_MACHINE = new Lucky7Block(
         AbstractBlock.Settings.create()
-            .strength(3.5f)
+            .strength(5.0f, 15.0f)
+            .sounds(BlockSoundGroup.METAL)
             .requiresTool()
             .nonOpaque()
             .luminance(state -> 5)
