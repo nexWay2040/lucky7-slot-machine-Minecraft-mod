@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": { "model": "lucky7:block/empty" },
+    "facing=south": { "model": "lucky7:block/empty" },
+    "facing=east": { "model": "lucky7:block/empty" },
+    "facing=west": { "model": "lucky7:block/empty" }
+  }
+}

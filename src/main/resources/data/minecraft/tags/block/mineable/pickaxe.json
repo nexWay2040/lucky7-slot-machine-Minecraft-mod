@@ -1,6 +1,8 @@
 {
   "replace": false,
   "values": [
-    "lucky7:slot_machine"
+    "lucky7:slot_machine",
+    "lucky7:lucky_wheel",
+    "lucky7:shell_game"
   ]
 }

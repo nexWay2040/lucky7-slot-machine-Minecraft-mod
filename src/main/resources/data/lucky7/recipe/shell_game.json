@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "G": "minecraft:gold_ingot",
+    "W": "minecraft:green_wool",
+    "P": "#minecraft:planks"
+  },
+  "pattern": [
+    "GGG",
+    "WWW",
+    "P P"
+  ],
+  "result": {
+    "count": 1,
+    "id": "lucky7:shell_game"
+  }
+}

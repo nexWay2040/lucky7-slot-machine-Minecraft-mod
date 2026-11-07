@@ -1,0 +1,15 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "N": "minecraft:gold_nugget"
+  },
+  "pattern": [
+    " NN",
+    " NN"
+  ],
+  "result": {
+    "count": 2,
+    "id": "lucky7:lucky_coin"
+  }
+}

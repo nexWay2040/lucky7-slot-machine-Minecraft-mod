@@ -1,42 +1,45 @@
 package com.lucky7.mod.screen;
 
+import com.lucky7.mod.Lucky7Mod;
 import com.lucky7.mod.blockentity.Lucky7BlockEntity;
 import com.lucky7.mod.config.Lucky7Config;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.inventory.Inventory;
-import net.minecraft.inventory.SimpleInventory;
-import net.minecraft.item.ItemStack;
-import net.minecraft.screen.ArrayPropertyDelegate;
-import net.minecraft.screen.PropertyDelegate;
-import net.minecraft.screen.ScreenHandler;
-import net.minecraft.screen.slot.Slot;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.Container;
+import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.ContainerData;
+import net.minecraft.world.inventory.SimpleContainerData;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
 
-public final class Lucky7ScreenHandler extends ScreenHandler {
+public final class Lucky7ScreenHandler extends AbstractContainerMenu {
     public static final int STAKE_SLOTS = Lucky7BlockEntity.STAKE_SLOTS;
     public static final int PRIZE_SLOTS = Lucky7BlockEntity.PRIZE_SLOTS;
     public static final int TOTAL_MACHINE_SLOTS = Lucky7BlockEntity.TOTAL_SLOTS;
 
     private final Lucky7BlockEntity machine;
-    private final Inventory inventory;
-    private final PropertyDelegate props;
+    private final Container inventory;
+    private final ContainerData props;
     private final BlockPos pos;
 
-    public Lucky7ScreenHandler(int syncId, PlayerInventory playerInventory, BlockPos pos) {
+    public Lucky7ScreenHandler(int syncId, Inventory playerInventory, BlockPos pos) {
         this(syncId, playerInventory, resolve(playerInventory, pos), pos);
     }
 
-    public Lucky7ScreenHandler(int syncId, PlayerInventory playerInventory, Lucky7BlockEntity machine, BlockPos pos) {
+    public Lucky7ScreenHandler(int syncId, Inventory playerInventory, Lucky7BlockEntity machine, BlockPos pos) {
         super(Lucky7ScreenHandlers.MACHINE, syncId);
         this.machine = machine;
-        this.pos = pos.toImmutable();
-        this.inventory = machine == null ? new SimpleInventory(TOTAL_MACHINE_SLOTS) : machine;
-        this.props = machine == null ? new ArrayPropertyDelegate(20) : machine.propertyDelegate();
+        this.pos = pos.immutable();
+        this.inventory = machine == null ? new SimpleContainer(TOTAL_MACHINE_SLOTS) : machine;
+        this.props = machine == null ? new SimpleContainerData(20) : machine.propertyDelegate();
 
-        checkSize(inventory, TOTAL_MACHINE_SLOTS);
-        inventory.onOpen(playerInventory.player);
-        addProperties(props);
+        checkContainerSize(inventory, TOTAL_MACHINE_SLOTS);
+        inventory.startOpen(playerInventory.player);
+        addDataSlots(props);
 
         // 1. 9 Stake Slots (3x3 grid on left: x=18..54, y=38..74)
         for (int row = 0; row < 3; row++) {
@@ -44,17 +47,17 @@ public final class Lucky7ScreenHandler extends ScreenHandler {
                 int idx = row * 3 + col;
                 addSlot(new Slot(inventory, idx, 18 + col * 18, 38 + row * 18) {
                     @Override
-                    public boolean canInsert(ItemStack stack) {
+                    public boolean mayPlace(ItemStack stack) {
                         return Lucky7Config.value(stack.getItem()) > 0;
                     }
 
                     @Override
-                    public boolean canTakeItems(PlayerEntity player) {
+                    public boolean mayPickup(Player player) {
                         return machine == null || !machine.isSpinning();
                     }
 
                     @Override
-                    public int getMaxItemCount() {
+                    public int getMaxStackSize() {
                         return 64;
                     }
                 });
@@ -68,12 +71,12 @@ public final class Lucky7ScreenHandler extends ScreenHandler {
                 int idx = STAKE_SLOTS + row * 9 + col;
                 addSlot(new Slot(inventory, idx, 178 + col * 18, 38 + row * 18) {
                     @Override
-                    public boolean canInsert(ItemStack stack) {
+                    public boolean mayPlace(ItemStack stack) {
                         return false; // read-only showcase
                     }
 
                     @Override
-                    public boolean canTakeItems(PlayerEntity player) {
+                    public boolean mayPickup(Player player) {
                         return false; // prizes cannot be looted directly
                     }
                 });
@@ -95,23 +98,23 @@ public final class Lucky7ScreenHandler extends ScreenHandler {
         }
     }
 
-    private static Lucky7BlockEntity resolve(PlayerInventory inventory, BlockPos pos) {
-        var world = inventory.player.getWorld();
+    private static Lucky7BlockEntity resolve(Inventory inventory, BlockPos pos) {
+        Level world = inventory.player.level();
         if (world == null || pos == null) return null;
-        var be = world.getBlockEntity(pos);
+        BlockEntity be = world.getBlockEntity(pos);
         if (be instanceof Lucky7BlockEntity m) return m;
-        be = world.getBlockEntity(pos.down());
+        be = world.getBlockEntity(pos.below());
         if (be instanceof Lucky7BlockEntity m) return m;
         return null;
     }
 
     @Override
-    public ItemStack quickMove(PlayerEntity player, int slotIndex) {
+    public ItemStack quickMoveStack(Player player, int slotIndex) {
         if (slotIndex < 0 || slotIndex >= slots.size()) return ItemStack.EMPTY;
         Slot slot = slots.get(slotIndex);
-        if (!slot.hasStack()) return ItemStack.EMPTY;
+        if (!slot.hasItem()) return ItemStack.EMPTY;
 
-        ItemStack stack = slot.getStack();
+        ItemStack stack = slot.getItem();
         ItemStack original = stack.copy();
 
         int playerStart = TOTAL_MACHINE_SLOTS;
@@ -119,7 +122,7 @@ public final class Lucky7ScreenHandler extends ScreenHandler {
 
         if (slotIndex < STAKE_SLOTS) {
             // From stake to player inventory
-            if (!insertItem(stack, playerStart, playerEnd, true)) {
+            if (!moveItemStackTo(stack, playerStart, playerEnd, true)) {
                 return ItemStack.EMPTY;
             }
         } else if (slotIndex >= STAKE_SLOTS && slotIndex < TOTAL_MACHINE_SLOTS) {
@@ -128,7 +131,7 @@ public final class Lucky7ScreenHandler extends ScreenHandler {
         } else {
             // From player inventory to stake slots
             if (Lucky7Config.value(stack.getItem()) > 0 && (machine == null || !machine.isSpinning())) {
-                if (!insertItem(stack, 0, STAKE_SLOTS, false)) {
+                if (!moveItemStackTo(stack, 0, STAKE_SLOTS, false)) {
                     return ItemStack.EMPTY;
                 }
             } else {
@@ -137,32 +140,32 @@ public final class Lucky7ScreenHandler extends ScreenHandler {
         }
 
         if (stack.isEmpty()) {
-            slot.setStack(ItemStack.EMPTY);
+            slot.setByPlayer(ItemStack.EMPTY);
         } else {
-            slot.markDirty();
+            slot.setChanged();
         }
 
         return original;
     }
 
     @Override
-    public boolean canUse(PlayerEntity player) {
-        return machine == null || machine.canPlayerUse(player);
+    public boolean stillValid(Player player) {
+        return machine == null || machine.stillValid(player);
     }
 
     @Override
-    public void onClosed(PlayerEntity player) {
-        super.onClosed(player);
-        inventory.onClose(player);
+    public void removed(Player player) {
+        super.removed(player);
+        inventory.stopOpen(player);
         if (machine != null) {
             machine.removeViewer(player);
         }
     }
 
     @Override
-    public boolean onButtonClick(PlayerEntity player, int id) {
+    public boolean clickMenuButton(Player player, int id) {
         if (machine == null) return false;
-        com.lucky7.mod.Lucky7Mod.LOGGER.info("ScreenHandler button {} clicked by player {}", id, player.getName().getString());
+        Lucky7Mod.LOGGER.info("ScreenHandler button {} clicked by player {}", id, player.getName().getString());
         if (id == 0) {
             return machine.startSpin(player);
         } else if (id == 1) {
@@ -176,7 +179,7 @@ public final class Lucky7ScreenHandler extends ScreenHandler {
     public int stakeValue() {
         int total = 0;
         for (int i = 0; i < STAKE_SLOTS; i++) {
-            ItemStack stack = getSlot(i).getStack();
+            ItemStack stack = getSlot(i).getItem();
             if (!stack.isEmpty()) {
                 total += Lucky7Config.value(stack.getItem()) * stack.getCount();
             }

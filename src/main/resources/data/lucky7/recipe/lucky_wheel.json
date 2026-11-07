@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "G": "minecraft:gold_ingot",
+    "D": "minecraft:diamond",
+    "R": "minecraft:redstone",
+    "I": "minecraft:iron_ingot"
+  },
+  "pattern": [
+    "GGG",
+    "GDR",
+    "III"
+  ],
+  "result": {
+    "count": 1,
+    "id": "lucky7:lucky_wheel"
+  }
+}

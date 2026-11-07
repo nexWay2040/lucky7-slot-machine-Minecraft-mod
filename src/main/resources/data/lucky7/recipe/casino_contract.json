@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "minecraft:paper",
+    "minecraft:emerald",
+    "minecraft:gold_nugget"
+  ],
+  "result": {
+    "count": 1,
+    "id": "lucky7:casino_contract"
+  }
+}

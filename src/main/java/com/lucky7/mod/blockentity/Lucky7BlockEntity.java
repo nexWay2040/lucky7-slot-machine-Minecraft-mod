@@ -8,58 +8,64 @@ import com.lucky7.mod.game.probability.ProbabilityCalculator;
 import com.lucky7.mod.game.probability.ProbabilityProfile;
 import com.lucky7.mod.game.reels.ReelLayout;
 import com.lucky7.mod.game.reels.ReelSymbol;
+import com.lucky7.mod.item.Lucky7Items;
 import com.lucky7.mod.screen.Lucky7ScreenHandler;
 import com.lucky7.mod.sound.Lucky7Sounds;
-import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.component.type.PotionContentsComponent;
-import net.minecraft.entity.ItemEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.inventory.Inventories;
-import net.minecraft.inventory.Inventory;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
-import net.minecraft.nbt.NbtList;
-import net.minecraft.nbt.NbtString;
-import net.minecraft.network.packet.s2c.play.BlockEntityUpdateS2CPacket;
-import net.minecraft.particle.ParticleTypes;
-import net.minecraft.potion.Potion;
-import net.minecraft.potion.Potions;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.RegistryWrapper;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.screen.ArrayPropertyDelegate;
-import net.minecraft.screen.PropertyDelegate;
-import net.minecraft.screen.ScreenHandler;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.Direction;
-import net.minecraft.sound.SoundCategory;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.collection.DefaultedList;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.Vec3d;
+import net.fabricmc.fabric.api.menu.v1.ExtendedMenuProvider;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.Holder;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.NonNullList;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.Container;
+import net.minecraft.world.ContainerHelper;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.ContainerData;
+import net.minecraft.world.inventory.SimpleContainerData;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.alchemy.Potion;
+import net.minecraft.world.item.alchemy.PotionContents;
+import net.minecraft.world.item.alchemy.Potions;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-public class Lucky7BlockEntity extends BlockEntity implements Inventory, ExtendedScreenHandlerFactory<BlockPos> {
+public class Lucky7BlockEntity extends BlockEntity implements Container, ExtendedMenuProvider<BlockPos> {
     public static final int STAKE_SLOTS = 9;
     public static final int PRIZE_SLOTS = 27;
     public static final int TOTAL_SLOTS = STAKE_SLOTS + PRIZE_SLOTS;
 
-    private final DefaultedList<ItemStack> items = DefaultedList.ofSize(TOTAL_SLOTS, ItemStack.EMPTY);
+    private final NonNullList<ItemStack> items = NonNullList.withSize(TOTAL_SLOTS, ItemStack.EMPTY);
     private final int[] reels = new int[]{ReelSymbol.CHERRY.ordinal(), ReelSymbol.BELL.ordinal(), ReelSymbol.SEVEN.ordinal()};
-    private final ArrayPropertyDelegate props = new ArrayPropertyDelegate(20);
+    private final SimpleContainerData props = new SimpleContainerData(20);
 
     private UUID owner;
     private UUID activePlayer;
@@ -104,11 +110,11 @@ public class Lucky7BlockEntity extends BlockEntity implements Inventory, Extende
         ItemStack s0 = items.get(STAKE_SLOTS);
         ItemStack s1 = items.get(STAKE_SLOTS + 1);
         ItemStack s2 = items.get(STAKE_SLOTS + 2);
-        if (!s0.isOf(Items.NETHERITE_BLOCK) || s0.getCount() != 16 ||
-            !s1.isOf(Items.NETHERITE_INGOT) || s1.getCount() != 32 ||
-            !s2.isOf(Items.DIAMOND_BLOCK) || s2.getCount() != 64) {
+        if (!s0.is(Items.NETHERITE_BLOCK) || s0.getCount() != 16 ||
+            !s1.is(Items.NETHERITE_INGOT) || s1.getCount() != 32 ||
+            !s2.is(Items.DIAMOND_BLOCK) || s2.getCount() != 64) {
             applyNewPrizePool();
-            markDirty();
+            setChanged();
         }
     }
 
@@ -137,7 +143,7 @@ public class Lucky7BlockEntity extends BlockEntity implements Inventory, Extende
 
         // Row 2: СРЕДНИЙ / МАЛЫЙ (Medium / Utility - slots 18..26)
         setPrizeStack(18, new ItemStack(Items.IRON_INGOT, 64));
-        setPrizeStack(19, new ItemStack(Items.COPPER_BLOCK, 64));
+        setPrizeStack(19, new ItemStack(Items.RAW_COPPER_BLOCK, 64));
         setPrizeStack(20, new ItemStack(Items.LAPIS_LAZULI, 64));
         setPrizeStack(21, new ItemStack(Items.REDSTONE, 64));
         setPrizeStack(22, new ItemStack(Items.QUARTZ, 64));
@@ -147,8 +153,8 @@ public class Lucky7BlockEntity extends BlockEntity implements Inventory, Extende
         setPrizeStack(26, createPotionStack(Potions.LONG_WATER_BREATHING, 1));
     }
 
-    private static ItemStack createPotionStack(RegistryEntry<Potion> potion, int count) {
-        ItemStack stack = PotionContentsComponent.createStack(Items.POTION, potion);
+    private static ItemStack createPotionStack(Holder<Potion> potion, int count) {
+        ItemStack stack = PotionContents.createItemStack(Items.POTION, potion);
         stack.setCount(count);
         return stack;
     }
@@ -160,50 +166,50 @@ public class Lucky7BlockEntity extends BlockEntity implements Inventory, Extende
         }
     }
 
-    // ---------------------------------------------------------------- ExtendedScreenHandlerFactory
+    // ---------------------------------------------------------------- ExtendedMenuProvider
     @Override
-    public BlockPos getScreenOpeningData(ServerPlayerEntity player) {
-        return pos;
+    public BlockPos getScreenOpeningData(ServerPlayer player) {
+        return worldPosition;
     }
 
     @Override
-    public Text getDisplayName() {
-        return Text.translatable("block.lucky7.slot_machine");
+    public Component getDisplayName() {
+        return Component.translatable("block.lucky7.slot_machine");
     }
 
     @Override
-    public ScreenHandler createMenu(int syncId, PlayerInventory playerInventory, PlayerEntity player) {
+    public AbstractContainerMenu createMenu(int syncId, Inventory playerInventory, Player player) {
         ensureCanonicalPrizes();
         addViewer(player);
-        return new Lucky7ScreenHandler(syncId, playerInventory, this, pos);
+        return new Lucky7ScreenHandler(syncId, playerInventory, this, worldPosition);
     }
 
     // ---------------------------------------------------------------- Ownership & Viewers
     public UUID ownerId() { return owner; }
     public boolean hasOwner() { return owner != null; }
 
-    public void setOwner(PlayerEntity player) {
+    public void setOwner(Player player) {
         if (owner == null && player != null) {
-            owner = player.getUuid();
+            owner = player.getUUID();
             markDirtyAndSync();
         }
     }
 
-    public boolean isOwner(PlayerEntity player) {
-        return owner == null || (player != null && owner.equals(player.getUuid()));
+    public boolean isOwner(Player player) {
+        return owner == null || (player != null && owner.equals(player.getUUID()));
     }
 
-    public void addViewer(PlayerEntity player) {
-        if (!viewers.contains(player.getUuid())) {
-            viewers.add(player.getUuid());
+    public void addViewer(Player player) {
+        if (!viewers.contains(player.getUUID())) {
+            viewers.add(player.getUUID());
         }
         if (owner == null) {
             setOwner(player);
         }
     }
 
-    public void removeViewer(PlayerEntity player) {
-        viewers.remove(player.getUuid());
+    public void removeViewer(Player player) {
+        viewers.remove(player.getUUID());
     }
 
     // ---------------------------------------------------------------- Stake Calculation
@@ -227,12 +233,12 @@ public class Lucky7BlockEntity extends BlockEntity implements Inventory, Extende
     }
 
     // ---------------------------------------------------------------- Start Spin
-    public boolean startSpin(PlayerEntity player) {
+    public boolean startSpin(Player player) {
         if (spinning) {
-            Lucky7Mod.LOGGER.info("Spin rejected: machine is already spinning at {}", pos);
+            Lucky7Mod.LOGGER.info("Spin rejected: machine is already spinning at {}", worldPosition);
             return false;
         }
-        if (world == null || world.isClient) return false;
+        if (level == null || level.isClientSide()) return false;
         if (!Lucky7Config.INSTANCE.enabled) {
             Lucky7Mod.LOGGER.info("Spin rejected: machine disabled in config");
             message(player, "message.lucky7.disabled");
@@ -260,45 +266,63 @@ public class Lucky7BlockEntity extends BlockEntity implements Inventory, Extende
             message(player, "message.lucky7.too_many_items");
             return false;
         }
-        if (lastSpinAt > 0 && world.getTime() >= lastSpinAt && (world.getTime() - lastSpinAt) < 5) {
+        if (lastSpinAt > 0 && level.getGameTime() >= lastSpinAt && (level.getGameTime() - lastSpinAt) < 5) {
             Lucky7Mod.LOGGER.info("Spin rejected: cooldown active (< 5 ticks)");
             return false;
         }
 
-        // Check for Divine VIP Stake (Nether Star, Enchanted Golden Apple, Dragon Egg)
+        // Check for Divine VIP Stake or Leafxup Streamer Trophy!
         boolean isVip = false;
+        boolean hasLeafxupTrophy = false;
         for (int i = 0; i < STAKE_SLOTS; i++) {
             ItemStack st = items.get(i);
-            if (st.isOf(Items.ENCHANTED_GOLDEN_APPLE) || st.isOf(Items.NETHER_STAR) || st.isOf(Items.DRAGON_EGG)) {
+            if (st.is(Lucky7Items.LEAFXUP_TROPHY)) {
+                hasLeafxupTrophy = true;
                 isVip = true;
-                break;
+            } else if (st.is(Items.ENCHANTED_GOLDEN_APPLE) || st.is(Items.NETHER_STAR) || st.is(Items.DRAGON_EGG)) {
+                isVip = true;
             }
         }
-        if (isVip && player instanceof ServerPlayerEntity sp) {
-            sp.addStatusEffect(new net.minecraft.entity.effect.StatusEffectInstance(net.minecraft.entity.effect.StatusEffects.LUCK, 1200, 1));
-            sp.addStatusEffect(new net.minecraft.entity.effect.StatusEffectInstance(net.minecraft.entity.effect.StatusEffects.GLOWING, 400, 0));
-            sp.sendMessage(Text.literal("✨ БОЖЕСТВЕННАЯ СТАВКА! Госпожа Удача благоволит вам!").formatted(net.minecraft.util.Formatting.LIGHT_PURPLE, net.minecraft.util.Formatting.BOLD), true);
-            if (world instanceof ServerWorld sw) {
-                sw.playSound(null, pos, net.minecraft.sound.SoundEvents.BLOCK_BEACON_ACTIVATE, SoundCategory.BLOCKS, 1.0f, 1.2f);
+
+        if (hasLeafxupTrophy && player instanceof ServerPlayer sp) {
+            sp.addEffect(new MobEffectInstance(MobEffects.LUCK, 2400, 2));
+            sp.addEffect(new MobEffectInstance(MobEffects.HERO_OF_THE_VILLAGE, 2400, 1));
+            sp.sendSystemMessage(Component.literal("👑 [СИНДИКАТ LUCKY 7] Распознан Золотой Кубок Лификсапа! Босс казино крутит бесплатно — Кубок возвращён владельцу!").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
+            if (level instanceof ServerLevel sw) {
+                sw.playSound(null, worldPosition, SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundSource.BLOCKS, 1.0f, 1.15f);
+            }
+        } else if (isVip && player instanceof ServerPlayer sp) {
+            sp.addEffect(new MobEffectInstance(MobEffects.LUCK, 1200, 1));
+            sp.addEffect(new MobEffectInstance(MobEffects.GLOWING, 400, 0));
+            sp.sendOverlayMessage(Component.literal("✨ БОЖЕСТВЕННАЯ СТАВКА! Госпожа Удача благоволит вам!").withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD));
+            if (level instanceof ServerLevel sw) {
+                sw.playSound(null, worldPosition, SoundEvents.BEACON_ACTIVATE, SoundSource.BLOCKS, 1.0f, 1.2f);
             }
         }
 
         if (isFever) {
             feverSpins--;
-            if (player instanceof ServerPlayerEntity sp) {
-                sp.sendMessage(Text.literal("★ FEVER SPIN! (Осталось бесплатных спинов: " + feverSpins + ")").formatted(net.minecraft.util.Formatting.GOLD, net.minecraft.util.Formatting.BOLD), true);
+            if (player instanceof ServerPlayer sp) {
+                sp.sendOverlayMessage(Component.literal("★ FEVER SPIN! (Осталось бесплатных спинов: " + feverSpins + ")").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
             }
         }
 
-        lastSpinAt = world.getTime();
-        activePlayer = (player != null) ? player.getUuid() : null;
+        lastSpinAt = level.getGameTime();
+        activePlayer = (player != null) ? player.getUUID() : null;
 
-        // Clear stake items atomically on server (if not free fever spin with empty slots)
+        // Clear stake items atomically on server (return Leafxup Trophy to the Boss so it is never lost!)
         for (int i = 0; i < STAKE_SLOTS; i++) {
+            ItemStack st = items.get(i);
+            if (!st.isEmpty() && st.is(Lucky7Items.LEAFXUP_TROPHY) && player != null) {
+                ItemStack copy = st.copy();
+                if (!player.getInventory().add(copy)) {
+                    player.level().addFreshEntity(new ItemEntity(player.level(), player.getX(), player.getY() + 0.5, player.getZ(), copy));
+                }
+            }
             items.set(i, ItemStack.EMPTY);
         }
-        if (player instanceof ServerPlayerEntity sp && sp.currentScreenHandler instanceof com.lucky7.mod.screen.Lucky7ScreenHandler) {
-            sp.currentScreenHandler.sendContentUpdates();
+        if (player instanceof ServerPlayer sp && sp.containerMenu instanceof Lucky7ScreenHandler) {
+            sp.containerMenu.broadcastChanges();
         }
 
         totalWagered += value;
@@ -309,7 +333,7 @@ public class Lucky7BlockEntity extends BlockEntity implements Inventory, Extende
         rollOutcome(value, isFever, isVip);
 
         spinning = true;
-        spinStart = world.getTime();
+        spinStart = level.getGameTime();
         spinTicks = Lucky7Config.INSTANCE.spinTicks;
 
         markDirtyAndSync();
@@ -330,17 +354,17 @@ public class Lucky7BlockEntity extends BlockEntity implements Inventory, Extende
         feverTriggeredThisSpin = false;
         coinShowerTriggeredThisSpin = false;
 
-        var rng = world != null ? world.getRandom() : net.minecraft.util.math.random.Random.create();
+        RandomSource rng = level != null ? level.getRandom() : RandomSource.create();
         WinCategory category;
 
         if (isVip) {
-            category = rng.nextFloat() < 0.60f ? WinCategory.JACKPOT : WinCategory.BIG_WIN;
+            category = rng.nextFloat() < 0.65f ? WinCategory.JACKPOT : WinCategory.BIG_WIN;
         } else if (isFever) {
             float f = rng.nextFloat();
             category = (f < 0.35f) ? WinCategory.JACKPOT : (f < 0.70f ? WinCategory.BIG_WIN : WinCategory.MEDIUM_WIN);
         } else {
             ProbabilityProfile profile = ProbabilityCalculator.calculate(stakeVal, Lucky7Config.INSTANCE.probabilitySettings());
-            double roll = (world != null ? world.getRandom().nextDouble() : Math.random());
+            double roll = rng.nextDouble();
             category = profile.choose(roll);
         }
         pendingCategory = category;
@@ -465,23 +489,23 @@ public class Lucky7BlockEntity extends BlockEntity implements Inventory, Extende
     }
 
     // ---------------------------------------------------------------- Lifecycle Ticks
-    public static void serverTick(net.minecraft.world.World world, BlockPos pos, BlockState state, Lucky7BlockEntity be) {
-        if (!(world instanceof ServerWorld serverWorld)) return;
-        if (be.spinning && serverWorld.getTime() >= be.spinStart + be.spinTicks) {
+    public static void serverTick(Level world, BlockPos pos, BlockState state, Lucky7BlockEntity be) {
+        if (!(world instanceof ServerLevel serverWorld)) return;
+        if (be.spinning && serverWorld.getGameTime() >= be.spinStart + be.spinTicks) {
             be.finishSpin(serverWorld);
         }
         if (be.redstonePulseTicks > 0) {
             be.redstonePulseTicks--;
             if (be.redstonePulseTicks == 0) {
                 be.redstoneOutput = 0;
-                serverWorld.updateComparators(pos, state.getBlock());
-                serverWorld.updateComparators(pos.up(), state.getBlock());
+                serverWorld.updateNeighbourForOutputSignal(pos, state.getBlock());
+                serverWorld.updateNeighbourForOutputSignal(pos.above(), state.getBlock());
             }
         }
         be.updateProperties();
     }
 
-    public static void clientTick(net.minecraft.world.World world, BlockPos pos, BlockState state, Lucky7BlockEntity be) {
+    public static void clientTick(Level world, BlockPos pos, BlockState state, Lucky7BlockEntity be) {
         if (be.spinning) {
             if (be.clientSpinStart < 0) {
                 be.clientSpinStart = System.currentTimeMillis();
@@ -493,18 +517,18 @@ public class Lucky7BlockEntity extends BlockEntity implements Inventory, Extende
             // Tactile mechanical stop clicks for each reel
             if (progress >= 0.50f && be.lastReelStoppedClient < 0) {
                 be.lastReelStoppedClient = 0;
-                world.playSound(pos.getX() + 0.5, pos.getY() + 1.4, pos.getZ() + 0.5,
-                    net.minecraft.sound.SoundEvents.BLOCK_PISTON_EXTEND, SoundCategory.BLOCKS, 0.75f, 1.35f, false);
+                world.playLocalSound(pos.getX() + 0.5, pos.getY() + 1.4, pos.getZ() + 0.5,
+                    SoundEvents.PISTON_EXTEND, SoundSource.BLOCKS, 0.75f, 1.35f, false);
             }
             if (progress >= 0.75f && be.lastReelStoppedClient < 1) {
                 be.lastReelStoppedClient = 1;
-                world.playSound(pos.getX() + 0.5, pos.getY() + 1.4, pos.getZ() + 0.5,
-                    net.minecraft.sound.SoundEvents.BLOCK_PISTON_EXTEND, SoundCategory.BLOCKS, 0.85f, 1.65f, false);
+                world.playLocalSound(pos.getX() + 0.5, pos.getY() + 1.4, pos.getZ() + 0.5,
+                    SoundEvents.PISTON_EXTEND, SoundSource.BLOCKS, 0.85f, 1.65f, false);
             }
             if (progress >= 1.00f && be.lastReelStoppedClient < 2) {
                 be.lastReelStoppedClient = 2;
-                world.playSound(pos.getX() + 0.5, pos.getY() + 1.4, pos.getZ() + 0.5,
-                    net.minecraft.sound.SoundEvents.BLOCK_ANVIL_PLACE, SoundCategory.BLOCKS, 0.55f, 1.85f, false);
+                world.playLocalSound(pos.getX() + 0.5, pos.getY() + 1.4, pos.getZ() + 0.5,
+                    SoundEvents.ANVIL_PLACE, SoundSource.BLOCKS, 0.55f, 1.85f, false);
             }
         } else {
             be.clientSpinStart = -1;
@@ -521,11 +545,11 @@ public class Lucky7BlockEntity extends BlockEntity implements Inventory, Extende
         }
     }
 
-    private void finishSpin(ServerWorld serverWorld) {
+    private void finishSpin(ServerLevel serverWorld) {
         spinning = false;
         lastWin = pendingPayoutValue;
 
-        PlayerEntity player = activePlayer != null ? serverWorld.getServer().getPlayerManager().getPlayer(activePlayer) : null;
+        Player player = activePlayer != null ? serverWorld.getServer().getPlayerList().getPlayer(activePlayer) : null;
 
         if (pendingCategory.isWin() && !pendingPrize.isEmpty()) {
             wins++;
@@ -541,14 +565,14 @@ public class Lucky7BlockEntity extends BlockEntity implements Inventory, Extende
                 redstoneOutput = 3;
             }
             redstonePulseTicks = 80; // 4 seconds active pulse
-            serverWorld.updateComparators(pos, getCachedState().getBlock());
-            serverWorld.updateComparators(pos.up(), getCachedState().getBlock());
+            serverWorld.updateNeighbourForOutputSignal(worldPosition, getBlockState().getBlock());
+            serverWorld.updateNeighbourForOutputSignal(worldPosition.above(), getBlockState().getBlock());
 
             bestWin = Math.max(bestWin, pendingPayoutValue);
             totalPaid += pendingPayoutValue;
 
             deliverPrize(serverWorld, player, pendingPrize.copy());
-            history.add(0, pendingCategory.name() + ": " + pendingPrize.getCount() + "x " + Registries.ITEM.getId(pendingPrize.getItem()).getPath());
+            history.add(0, pendingCategory.name() + ": " + pendingPrize.getCount() + "x " + BuiltInRegistries.ITEM.getKey(pendingPrize.getItem()).getPath());
 
             if (pendingCategory == WinCategory.JACKPOT) {
                 playSound(Lucky7Sounds.JACKPOT, 1.0f);
@@ -561,18 +585,18 @@ public class Lucky7BlockEntity extends BlockEntity implements Inventory, Extende
             // Trigger FEVER MODE Activation event!
             if (feverTriggeredThisSpin) {
                 feverSpins = 3;
-                if (player instanceof ServerPlayerEntity sp) {
-                    sp.sendMessage(Text.literal("🔥 FEVER MODE АКТИВИРОВАН! 3 БЕСПЛАТНЫХ СУПЕР-СПИНА! 🔥").formatted(net.minecraft.util.Formatting.GOLD, net.minecraft.util.Formatting.BOLD), false);
+                if (player instanceof ServerPlayer sp) {
+                    sp.sendSystemMessage(Component.literal("🔥 FEVER MODE АКТИВИРОВАН! 3 БЕСПЛАТНЫХ СУПЕР-СПИНА! 🔥").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
                 }
-                serverWorld.playSound(null, pos, net.minecraft.sound.SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundCategory.BLOCKS, 1.0f, 1.0f);
-                serverWorld.playSound(null, pos, net.minecraft.sound.SoundEvents.BLOCK_BELL_RESONATE, SoundCategory.BLOCKS, 1.0f, 1.2f);
-                serverWorld.spawnParticles(ParticleTypes.TOTEM_OF_UNDYING, pos.getX() + 0.5, pos.getY() + 1.8, pos.getZ() + 0.5, 60, 0.4, 0.4, 0.4, 0.2);
+                serverWorld.playSound(null, worldPosition, SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundSource.BLOCKS, 1.0f, 1.0f);
+                serverWorld.playSound(null, worldPosition, SoundEvents.BELL_RESONATE, SoundSource.BLOCKS, 1.0f, 1.2f);
+                serverWorld.sendParticles(ParticleTypes.TOTEM_OF_UNDYING, worldPosition.getX() + 0.5, worldPosition.getY() + 1.8, worldPosition.getZ() + 0.5, 60, 0.4, 0.4, 0.4, 0.2);
             }
 
             // Coin Shower Easter Egg!
             if (coinShowerTriggeredThisSpin) {
-                if (player instanceof ServerPlayerEntity sp) {
-                    sp.sendMessage(Text.literal("🪙 МОНЕТНЫЙ ДОЖДЬ! +64 золотых самородка из лотка!").formatted(net.minecraft.util.Formatting.YELLOW, net.minecraft.util.Formatting.BOLD), true);
+                if (player instanceof ServerPlayer sp) {
+                    sp.sendOverlayMessage(Component.literal("🪙 МОНЕТНЫЙ ДОЖДЬ! +64 золотых самородка из лотка!").withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD));
                 }
                 ejectFromHopper(serverWorld, new ItemStack(Items.GOLD_NUGGET, 64), 0.22);
             }
@@ -582,9 +606,9 @@ public class Lucky7BlockEntity extends BlockEntity implements Inventory, Extende
                 reels[1] == ReelLayout.positionOf(1, ReelSymbol.SKULL) &&
                 reels[2] == ReelLayout.positionOf(2, ReelSymbol.SKULL)) {
                 if (player != null) {
-                    player.damage(serverWorld.getDamageSources().magic(), 3.0f);
-                    serverWorld.playSound(null, pos, net.minecraft.sound.SoundEvents.ENTITY_WITHER_HURT, SoundCategory.BLOCKS, 1.0f, 0.8f);
-                    serverWorld.spawnParticles(ParticleTypes.SMOKE, pos.getX() + 0.5, pos.getY() + 1.2, pos.getZ() + 0.5, 25, 0.25, 0.25, 0.25, 0.05);
+                    player.hurtServer(serverWorld, serverWorld.damageSources().magic(), 3.0f);
+                    serverWorld.playSound(null, worldPosition, SoundEvents.WITHER_HURT, SoundSource.BLOCKS, 1.0f, 0.8f);
+                    serverWorld.sendParticles(ParticleTypes.SMOKE, worldPosition.getX() + 0.5, worldPosition.getY() + 1.2, worldPosition.getZ() + 0.5, 25, 0.25, 0.25, 0.25, 0.05);
                 }
             }
             playSound(Lucky7Sounds.REEL_STOP, 1.0f);
@@ -603,54 +627,54 @@ public class Lucky7BlockEntity extends BlockEntity implements Inventory, Extende
         markDirtyAndSync();
     }
 
-    private void deliverPrize(ServerWorld serverWorld, PlayerEntity player, ItemStack stack) {
-        if (player instanceof ServerPlayerEntity sp) {
-            String prizeName = stack.getCount() + "x " + stack.getName().getString();
-            sp.sendMessage(Text.literal("★ ВЫИГРЫШ: " + prizeName).formatted(net.minecraft.util.Formatting.GREEN, net.minecraft.util.Formatting.BOLD), true);
+    private void deliverPrize(ServerLevel serverWorld, Player player, ItemStack stack) {
+        if (player instanceof ServerPlayer sp) {
+            String prizeName = stack.getCount() + "x " + stack.getHoverName().getString();
+            sp.sendOverlayMessage(Component.literal("★ ВЫИГРЫШ: " + prizeName).withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD));
         }
         // Eject item directly out of the bottom physical hopper payout tray!
         ejectFromHopper(serverWorld, stack, 0.18);
-        serverWorld.playSound(null, pos, net.minecraft.sound.SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, SoundCategory.BLOCKS, 1.0f, 1.2f);
-        serverWorld.playSound(null, pos, net.minecraft.sound.SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME, SoundCategory.BLOCKS, 0.8f, 1.5f);
+        serverWorld.playSound(null, worldPosition, SoundEvents.EXPERIENCE_ORB_PICKUP, SoundSource.BLOCKS, 1.0f, 1.2f);
+        serverWorld.playSound(null, worldPosition, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.BLOCKS, 0.8f, 1.5f);
     }
 
-    private void ejectFromHopper(ServerWorld serverWorld, ItemStack stack, double speed) {
+    private void ejectFromHopper(ServerLevel serverWorld, ItemStack stack, double speed) {
         Direction facing = Direction.NORTH;
         try {
-            facing = getCachedState().get(Lucky7Block.FACING);
+            facing = getBlockState().getValue(Lucky7Block.FACING);
         } catch (Exception ignored) {}
 
-        double fx = pos.getX() + 0.5 + facing.getOffsetX() * 0.52;
-        double fy = pos.getY() + 0.32;
-        double fz = pos.getZ() + 0.5 + facing.getOffsetZ() * 0.52;
+        double fx = worldPosition.getX() + 0.5 + facing.getStepX() * 0.52;
+        double fy = worldPosition.getY() + 0.32;
+        double fz = worldPosition.getZ() + 0.5 + facing.getStepZ() * 0.52;
 
         ItemEntity entity = new ItemEntity(serverWorld, fx, fy, fz, stack);
         double spreadX = (serverWorld.getRandom().nextDouble() - 0.5) * 0.06;
         double spreadZ = (serverWorld.getRandom().nextDouble() - 0.5) * 0.06;
-        entity.setVelocity(facing.getOffsetX() * speed + spreadX, 0.18, facing.getOffsetZ() * speed + spreadZ);
-        serverWorld.spawnEntity(entity);
+        entity.setDeltaMovement(facing.getStepX() * speed + spreadX, 0.18, facing.getStepZ() * speed + spreadZ);
+        serverWorld.addFreshEntity(entity);
     }
 
-    private void spawnCelebrationParticles(ServerWorld world, boolean jackpot) {
-        double x = pos.getX() + 0.5;
-        double y = pos.getY() + 1.2;
-        double z = pos.getZ() + 0.5;
+    private void spawnCelebrationParticles(ServerLevel world, boolean jackpot) {
+        double x = worldPosition.getX() + 0.5;
+        double y = worldPosition.getY() + 1.2;
+        double z = worldPosition.getZ() + 0.5;
         if (jackpot) {
-            world.spawnParticles(ParticleTypes.TOTEM_OF_UNDYING, x, y, z, 50, 0.4, 0.4, 0.4, 0.15);
-            world.spawnParticles(ParticleTypes.FIREWORK, x, y + 0.8, z, 50, 0.4, 0.6, 0.4, 0.15);
-            world.playSound(null, pos, net.minecraft.sound.SoundEvents.ENTITY_FIREWORK_ROCKET_BLAST, SoundCategory.BLOCKS, 1.0f, 1.0f);
-            world.playSound(null, pos, net.minecraft.sound.SoundEvents.ENTITY_FIREWORK_ROCKET_TWINKLE, SoundCategory.BLOCKS, 1.0f, 1.0f);
-            world.playSound(null, pos, net.minecraft.sound.SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundCategory.BLOCKS, 1.0f, 1.0f);
+            world.sendParticles(ParticleTypes.TOTEM_OF_UNDYING, x, y, z, 50, 0.4, 0.4, 0.4, 0.15);
+            world.sendParticles(ParticleTypes.FIREWORK, x, y + 0.8, z, 50, 0.4, 0.6, 0.4, 0.15);
+            world.playSound(null, worldPosition, SoundEvents.FIREWORK_ROCKET_BLAST, SoundSource.BLOCKS, 1.0f, 1.0f);
+            world.playSound(null, worldPosition, SoundEvents.FIREWORK_ROCKET_TWINKLE, SoundSource.BLOCKS, 1.0f, 1.0f);
+            world.playSound(null, worldPosition, SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundSource.BLOCKS, 1.0f, 1.0f);
 
             // Bonus shower of 16 gold nuggets cascading into the tray
             ejectFromHopper(world, new ItemStack(Items.GOLD_NUGGET, 16), 0.22);
         } else {
-            world.spawnParticles(ParticleTypes.HAPPY_VILLAGER, x, y, z, 20, 0.3, 0.3, 0.3, 0.05);
+            world.sendParticles(ParticleTypes.HAPPY_VILLAGER, x, y, z, 20, 0.3, 0.3, 0.3, 0.05);
         }
     }
 
     // ---------------------------------------------------------------- Return Stake
-    public boolean returnStake(PlayerEntity player) {
+    public boolean returnStake(Player player) {
         if (spinning) {
             message(player, "message.lucky7.busy");
             return false;
@@ -659,8 +683,9 @@ public class Lucky7BlockEntity extends BlockEntity implements Inventory, Extende
         for (int i = 0; i < STAKE_SLOTS; i++) {
             ItemStack stack = items.get(i);
             if (!stack.isEmpty()) {
-                if (!player.getInventory().insertStack(stack.copy())) {
-                    player.dropItem(stack.copy(), false);
+                ItemStack copy = stack.copy();
+                if (!player.getInventory().add(copy)) {
+                    player.level().addFreshEntity(new ItemEntity(player.level(), player.getX(), player.getY() + 0.5, player.getZ(), copy));
                 }
                 items.set(i, ItemStack.EMPTY);
                 moved = true;
@@ -668,23 +693,23 @@ public class Lucky7BlockEntity extends BlockEntity implements Inventory, Extende
         }
         if (moved) {
             markDirtyAndSync();
-            if (player instanceof ServerPlayerEntity sp && sp.currentScreenHandler instanceof com.lucky7.mod.screen.Lucky7ScreenHandler) {
-                sp.currentScreenHandler.sendContentUpdates();
+            if (player instanceof ServerPlayer sp && sp.containerMenu instanceof Lucky7ScreenHandler) {
+                sp.containerMenu.broadcastChanges();
             }
             playSound(Lucky7Sounds.BUTTON_CLICK, 1.0f);
         }
         return moved;
     }
 
-    private void message(PlayerEntity player, String key) {
-        if (player instanceof ServerPlayerEntity sp) {
-            sp.sendMessage(Text.translatable(key).formatted(net.minecraft.util.Formatting.RED), false);
+    private void message(Player player, String key) {
+        if (player instanceof ServerPlayer sp) {
+            sp.sendSystemMessage(Component.translatable(key).withStyle(ChatFormatting.RED));
         }
     }
 
-    public void playSound(net.minecraft.sound.SoundEvent event, float volume) {
-        if (world == null || !Lucky7Config.INSTANCE.soundsEnabled) return;
-        world.playSound(null, pos, event, SoundCategory.BLOCKS, (float) (Lucky7Config.INSTANCE.masterVolume * volume * Lucky7Config.INSTANCE.effectsVolume), 1.0f);
+    public void playSound(SoundEvent event, float volume) {
+        if (level == null || !Lucky7Config.INSTANCE.soundsEnabled) return;
+        level.playSound(null, worldPosition, event, SoundSource.BLOCKS, (float) (Lucky7Config.INSTANCE.masterVolume * volume * Lucky7Config.INSTANCE.effectsVolume), 1.0f);
     }
 
     // ---------------------------------------------------------------- Sync Properties
@@ -708,7 +733,7 @@ public class Lucky7BlockEntity extends BlockEntity implements Inventory, Extende
         props.set(16, feverSpins);
     }
 
-    public PropertyDelegate propertyDelegate() {
+    public ContainerData propertyDelegate() {
         updateProperties();
         return props;
     }
@@ -732,73 +757,71 @@ public class Lucky7BlockEntity extends BlockEntity implements Inventory, Extende
         }
         float elapsedSeconds = (System.currentTimeMillis() - clientSpinStart) / 1000.0f;
         float totalDuration = Math.max(1.0f, spinTicks / 20.0f);
-        return MathHelper.clamp(elapsedSeconds / totalDuration, 0.0f, 1.0f);
+        return Mth.clamp(elapsedSeconds / totalDuration, 0.0f, 1.0f);
     }
 
     public void markDirtyAndSync() {
-        markDirty();
-        if (world != null) {
-            world.updateListeners(pos, getCachedState(), getCachedState(), Block.NOTIFY_ALL);
-            if (world instanceof ServerWorld serverWorld) {
-                serverWorld.getChunkManager().markForUpdate(pos);
+        setChanged();
+        if (level != null) {
+            level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_ALL);
+            if (level instanceof ServerLevel serverWorld) {
+                serverWorld.getChunkSource().blockChanged(worldPosition);
             }
         }
     }
 
     @Override
-    public BlockEntityUpdateS2CPacket toUpdatePacket() {
-        return BlockEntityUpdateS2CPacket.create(this);
+    public Packet<ClientGamePacketListener> getUpdatePacket() {
+        return ClientboundBlockEntityDataPacket.create(this);
     }
 
     @Override
-    public NbtCompound toInitialChunkDataNbt(RegistryWrapper.WrapperLookup registries) {
-        NbtCompound nbt = new NbtCompound();
-        writeNbt(nbt, registries);
-        return nbt;
+    public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
+        return this.saveCustomOnly(registries);
     }
 
-    // ---------------------------------------------------------------- NBT
+    // ---------------------------------------------------------------- Serialization (26.3 ValueInput / ValueOutput)
     @Override
-    protected void writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registries) {
-        super.writeNbt(nbt, registries);
-        Inventories.writeNbt(nbt, items, registries);
-        if (owner != null) nbt.putString("owner", owner.toString());
-        nbt.putBoolean("spinning", spinning);
-        nbt.putLong("spinStart", spinStart);
-        nbt.putInt("spinTicks", spinTicks);
-        nbt.putLong("lastSpinAt", lastSpinAt);
-        nbt.putIntArray("reels", reels);
-        nbt.putInt("spins", spins);
-        nbt.putInt("wins", wins);
-        nbt.putInt("jackpots", jackpots);
-        nbt.putInt("bestWin", bestWin);
-        nbt.putInt("lastWin", lastWin);
-        nbt.putInt("lastTier", lastTier);
-        nbt.putInt("jackpotPool", jackpotPool);
-        nbt.putInt("totalWagered", totalWagered);
-        nbt.putInt("totalPaid", totalPaid);
-        nbt.putInt("pendingValue", pendingPayoutValue);
-        nbt.putInt("pendingCategory", pendingCategory.ordinal());
-        nbt.putInt("feverSpins", feverSpins);
-
-        NbtList list = new NbtList();
-        for (String line : history) list.add(NbtString.of(line));
-        nbt.put("history", list);
+    protected void saveAdditional(ValueOutput output) {
+        super.saveAdditional(output);
+        ContainerHelper.saveAllItems(output, items);
+        if (owner != null) output.putString("owner", owner.toString());
+        output.putBoolean("spinning", spinning);
+        output.putLong("spinStart", spinStart);
+        output.putInt("spinTicks", spinTicks);
+        output.putLong("lastSpinAt", lastSpinAt);
+        output.putIntArray("reels", reels);
+        output.putInt("spins", spins);
+        output.putInt("wins", wins);
+        output.putInt("jackpots", jackpots);
+        output.putInt("bestWin", bestWin);
+        output.putInt("lastWin", lastWin);
+        output.putInt("lastTier", lastTier);
+        output.putInt("jackpotPool", jackpotPool);
+        output.putInt("totalWagered", totalWagered);
+        output.putInt("totalPaid", totalPaid);
+        output.putInt("pendingValue", pendingPayoutValue);
+        output.putInt("pendingCategory", pendingCategory.ordinal());
+        output.putInt("feverSpins", feverSpins);
+        output.putString("historyText", String.join("\n", history));
     }
 
     @Override
-    protected void readNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registries) {
-        super.readNbt(nbt, registries);
+    protected void loadAdditional(ValueInput input) {
+        super.loadAdditional(input);
         items.clear();
-        Inventories.readNbt(nbt, items, registries);
+        ContainerHelper.loadAllItems(input, items);
         ensureCanonicalPrizes();
 
-        owner = nbt.contains("owner") ? uuid(nbt.getString("owner")) : null;
+        String ownerStr = input.getStringOr("owner", "");
+        owner = !ownerStr.isEmpty() ? uuid(ownerStr) : null;
+
         boolean wasSpinning = spinning;
-        spinning = nbt.getBoolean("spinning");
-        spinStart = nbt.getLong("spinStart");
-        spinTicks = nbt.getInt("spinTicks") > 0 ? nbt.getInt("spinTicks") : 60;
-        lastSpinAt = nbt.contains("lastSpinAt") ? nbt.getLong("lastSpinAt") : 0;
+        spinning = input.getBooleanOr("spinning", false);
+        spinStart = input.getLongOr("spinStart", 0L);
+        int st = input.getIntOr("spinTicks", 60);
+        spinTicks = st > 0 ? st : 60;
+        lastSpinAt = input.getLongOr("lastSpinAt", 0L);
 
         if (spinning && !wasSpinning) {
             clientSpinStart = System.currentTimeMillis();
@@ -806,36 +829,41 @@ public class Lucky7BlockEntity extends BlockEntity implements Inventory, Extende
             clientSpinStart = -1;
         }
 
-        int[] saved = nbt.getIntArray("reels");
-        if (saved.length == 3) System.arraycopy(saved, 0, reels, 0, 3);
+        input.getIntArray("reels").ifPresent(saved -> {
+            if (saved.length == 3) System.arraycopy(saved, 0, reels, 0, 3);
+        });
 
-        spins = nbt.getInt("spins");
-        wins = nbt.getInt("wins");
-        jackpots = nbt.getInt("jackpots");
-        bestWin = nbt.getInt("bestWin");
-        lastWin = nbt.getInt("lastWin");
-        lastTier = nbt.getInt("lastTier");
-        jackpotPool = nbt.getInt("jackpotPool");
-        totalWagered = nbt.getInt("totalWagered");
-        totalPaid = nbt.getInt("totalPaid");
-        pendingPayoutValue = nbt.getInt("pendingValue");
+        spins = input.getIntOr("spins", 0);
+        wins = input.getIntOr("wins", 0);
+        jackpots = input.getIntOr("jackpots", 0);
+        bestWin = input.getIntOr("bestWin", 0);
+        lastWin = input.getIntOr("lastWin", 0);
+        lastTier = input.getIntOr("lastTier", -1);
+        jackpotPool = input.getIntOr("jackpotPool", 100);
+        totalWagered = input.getIntOr("totalWagered", 0);
+        totalPaid = input.getIntOr("totalPaid", 0);
+        pendingPayoutValue = input.getIntOr("pendingValue", 0);
 
-        int catIdx = nbt.getInt("pendingCategory");
+        int catIdx = input.getIntOr("pendingCategory", 0);
         pendingCategory = (catIdx >= 0 && catIdx < WinCategory.values().length) ? WinCategory.values()[catIdx] : WinCategory.NO_WIN;
-        feverSpins = nbt.getInt("feverSpins");
+        feverSpins = input.getIntOr("feverSpins", 0);
 
         history.clear();
-        NbtList list = nbt.getList("history", NbtElement.STRING_TYPE);
-        for (int i = 0; i < list.size(); i++) history.add(list.getString(i));
+        String histText = input.getStringOr("historyText", "");
+        if (!histText.isEmpty()) {
+            for (String line : histText.split("\n")) {
+                if (!line.isBlank()) history.add(line);
+            }
+        }
     }
 
     private static UUID uuid(String value) {
         try { return UUID.fromString(value); } catch (Exception e) { return null; }
     }
 
-    // ---------------------------------------------------------------- Inventory
+    // ---------------------------------------------------------------- Container Implementation
     @Override
-    public int size() {
+    public int getContainerSize() {
         return TOTAL_SLOTS;
     }
 
@@ -845,26 +873,26 @@ public class Lucky7BlockEntity extends BlockEntity implements Inventory, Extende
     }
 
     @Override
-    public ItemStack getStack(int slot) {
+    public ItemStack getItem(int slot) {
         return (slot >= 0 && slot < TOTAL_SLOTS) ? items.get(slot) : ItemStack.EMPTY;
     }
 
     @Override
-    public ItemStack removeStack(int slot, int amount) {
-        ItemStack result = Inventories.splitStack(items, slot, amount);
+    public ItemStack removeItem(int slot, int amount) {
+        ItemStack result = ContainerHelper.removeItem(items, slot, amount);
         markDirtyAndSync();
         return result;
     }
 
     @Override
-    public ItemStack removeStack(int slot) {
-        ItemStack result = Inventories.removeStack(items, slot);
+    public ItemStack removeItemNoUpdate(int slot) {
+        ItemStack result = ContainerHelper.takeItem(items, slot);
         markDirtyAndSync();
         return result;
     }
 
     @Override
-    public void setStack(int slot, ItemStack stack) {
+    public void setItem(int slot, ItemStack stack) {
         if (slot >= 0 && slot < TOTAL_SLOTS) {
             items.set(slot, stack);
             markDirtyAndSync();
@@ -872,12 +900,13 @@ public class Lucky7BlockEntity extends BlockEntity implements Inventory, Extende
     }
 
     @Override
-    public boolean canPlayerUse(PlayerEntity player) {
-        return world != null && world.getBlockEntity(pos) == this && player.squaredDistanceTo(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5) <= 64.0;
+    public boolean stillValid(Player player) {
+        return level != null && level.getBlockEntity(worldPosition) == this &&
+            player.distanceToSqr(worldPosition.getX() + 0.5, worldPosition.getY() + 0.5, worldPosition.getZ() + 0.5) <= 64.0;
     }
 
     @Override
-    public void clear() {
+    public void clearContent() {
         items.clear();
         markDirtyAndSync();
     }

@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "condition": {
+        "type": "minecraft:survives_explosion"
+      },
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "lucky7:shell_game"
+        }
+      ],
+      "rolls": 1
+    }
+  ],
+  "random_sequence": "lucky7:blocks/shell_game"
+}

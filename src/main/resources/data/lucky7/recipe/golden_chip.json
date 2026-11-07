@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "G": "minecraft:gold_ingot",
+    "R": "minecraft:redstone"
+  },
+  "pattern": [
+    " G ",
+    "GRG",
+    " G "
+  ],
+  "result": {
+    "count": 4,
+    "id": "lucky7:golden_chip"
+  }
+}
