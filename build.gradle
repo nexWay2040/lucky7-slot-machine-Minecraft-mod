@@ -1,6 +1,7 @@
 plugins {
 	id 'net.fabricmc.fabric-loom' version "${loom_version}"
 	id 'maven-publish'
+	id 'me.modmuss50.mod-publish-plugin' version '2.2.1'
 }
 
 base { archivesName = 'lucky7' }
@@ -66,5 +67,24 @@ publishing {
 		create("mavenJava", MavenPublication) {
 			from components.java
 		}
+	}
+}
+
+publishMods {
+	file = jar.archiveFile
+	changelog = file("RELEASE_NOTES.md").text
+	type = STABLE
+	modLoaders.add("fabric")
+	displayName = "Lucky 7 ${project.version} (MC ${project.minecraft_version})"
+	dryRun = providers.environmentVariable("CURSEFORGE_TOKEN").map { it.trim().isEmpty() }.getOrElse(true)
+
+	curseforge {
+		accessToken = providers.environmentVariable("CURSEFORGE_TOKEN").orElse("")
+		projectId = "1783404"
+		minecraftVersions.add("${project.minecraft_version}")
+		javaVersions.add(JavaVersion.VERSION_25)
+		clientRequired = true
+		serverRequired = true
+		requires("fabric-api")
 	}
 }
