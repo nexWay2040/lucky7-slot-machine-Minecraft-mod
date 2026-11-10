@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "L": "minecraft:emerald",
+    "G": "minecraft:gold_nugget"
+  },
+  "pattern": [
+    "L L",
+    " G ",
+    "L L"
+  ],
+  "result": {
+    "count": 1,
+    "id": "lucky7:lucky_clover"
+  }
+}

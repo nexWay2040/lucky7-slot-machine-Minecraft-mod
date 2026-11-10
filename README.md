@@ -19,8 +19,11 @@
    - **Lucky 7 Slot Machine (`lucky7:slot_machine`)**: 2-block tall 3D cabinet with 3 rotating 18-facet reels, physical lever & button hitboxes, bottom hopper payout fountain, dedicated **🔥 БЕСПЛАТНЫЙ СПИН 🔥** button during Fever Mode, and a special **Leafxup VIP Trophy** mode (returns the Trophy to your inventory while triggering VIP jackpot odds!).
    - **Wheel of Samsara (`lucky7:lucky_wheel`)**: 3D 12-sector Wheel of Fortune on a golden pedestal with mechanical peg-clicking sounds and 12 hilarious/epic streamer outcomes (32-Diamond Jackpot, Chicken Paratrooper Apocalypse, Space Levitation, Fake Creeper Hiss + Emeralds, God Apple, Ancient Debris, Haste II + Speed II, Totem of Undying).
    - **Hustler's Shell Game (`lucky7:shell_game`)**: 3D mahogany & green velvet table with 3 animated golden cups that lift to reveal a sparkling diamond, orbit smoothly in 3D during shuffling, and let you click Left/Center/Right cup in the world to win **3x Diamonds + Golden Chip**.
-4. **Custom Casino Currency & Trophy Items**:
-   - **Golden Casino Chip (`lucky7:golden_chip`)**, **Lucky Gold Coin (`lucky7:lucky_coin`)**, **Don Creeperione's Contract (`lucky7:casino_contract`)**, and **Leafxup's Emerald VIP Trophy (`lucky7:leafxup_trophy`)** with custom pixel-art textures and 26.3 item models.
+4. **Custom Casino Currency, Lucky Items & Upgraded Textures**:
+   - **Golden Casino Chip (`lucky7:golden_chip`)**, **Emerald VIP Chip (`lucky7:emerald_chip`)**, **Diamond High-Roller Chip (`lucky7:diamond_chip`)**, and **Lucky Gold Coin (`lucky7:lucky_coin`)**.
+   - **Interactive Lucky Casino Dice (`lucky7:lucky_dice`)**: Right-click to roll 2d6 (`2..12`) for Luck IV + Emeralds on double-6s or comedy snake-eyes debuffs.
+   - **Ace of Spades Trump Card (`lucky7:lucky_ace`)**, **Four-Leaf Lucky Clover (`lucky7:lucky_clover`)**, **Don Creeperione's Contract (`lucky7:casino_contract` — auto-given on world join)**, and **Leafxup's Emerald VIP Trophy (`lucky7:leafxup_trophy`)**.
+   - Upgraded 3D textures sourced cleanly from **CC0 / MIT** assets (see [`CREDITS.txt`](CREDITS.txt)) featuring dedicated mahogany wood, 512×512 labeled 12-sector Wheel of Risk (`+` / `X` indicators & pixel icons), and emerald velvet Shell Game felt.
 
 ---
 

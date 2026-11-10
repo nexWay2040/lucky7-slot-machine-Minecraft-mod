@@ -11,9 +11,14 @@ import com.lucky7.mod.screen.Lucky7ScreenHandlers;
 import com.lucky7.mod.sound.Lucky7Sounds;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,6 +68,19 @@ public final class Lucky7Mod implements ModInitializer {
                     LOGGER.warn("Machine not found for action payload from {} at {}", player.getName().getString(), payload.pos());
                 }
             });
+        });
+
+        // Automatically give Don Creeperione's Contract to every player upon entering the world (supports Co-op)
+        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
+            ServerPlayer player = handler.player;
+            if (!player.entityTags().contains("lucky7_starter_contract")) {
+                player.addTag("lucky7_starter_contract");
+                ItemStack contract = new ItemStack(Lucky7Items.CASINO_CONTRACT);
+                if (!player.getInventory().add(contract)) {
+                    player.level().addFreshEntity(new ItemEntity(player.level(), player.getX(), player.getY() + 0.5, player.getZ(), contract));
+                }
+                player.sendSystemMessage(Component.literal("📜 [Lucky 7 Syndicate] Вы получили пригласительный Контракт Дона Криперионе! Возьмите его в руки и нажмите ПКМ.").withStyle(ChatFormatting.GOLD));
+            }
         });
 
         LOGGER.info("Lucky 7 v2.0.0 initialized for Minecraft 26.3: Storyline, 3D Casinos & Leafxup Edition ready!");

@@ -1,0 +1,43 @@
+Lucky 7 Mod - Open Source & Third-Party Texture Attributions
+===============================================================
+
+All external pixel-art sprites and textures bundled in Lucky 7 v2.0.0 come from
+verified CC0 1.0 Public Domain and MIT-licensed packs for safe redistribution
+on CurseForge and GitHub:
+
+1. Golden Chip, Emerald Chip, Diamond Chip, Gold Coin item sprites (`golden_chip.png`,
+   `emerald_chip.png`, `diamond_chip.png`, `lucky_coin.png`):
+   - Source: AndresPR512 / Casino-Rocket-1.21.1
+   - URL: https://github.com/AndresPR512/Casino-Rocket-1.21.1
+   - License: MIT License
+
+2. Dice, Ace of Spades Card, Four-Leaf Lucky Clover (`lucky_dice.png`,
+   `lucky_ace.png` base, `lucky_clover.png` base):
+   - Source: tstamborski / pixelart-icons
+   - URL: https://github.com/tstamborski/pixelart-icons
+   - License: CC0 1.0 Universal (Public Domain)
+
+3. Signed Wax-Sealed Contract Scroll (`casino_contract.png`):
+   - Source: 7Soul1 Document Icons (CC0 Document Icons Pack via OpenGameArt / AntumDeluge)
+   - URL: https://opengameart.org/content/cc0-document-icons
+   - License: CC0 1.0 Universal (Public Domain)
+
+4. Golden VIP Trophy base (`leafxup_trophy.png` base):
+   - Source: OpenClipart Award Icons (CC0 Award Icons Pack via OpenGameArt / AntumDeluge)
+   - URL: https://opengameart.org/content/cc0-award-icons
+   - License: CC0 1.0 Universal (Public Domain)
+
+5. Fortune Wheel Icon (`lucky_wheel.png` base):
+   - Source: draganasgamesart - Wheel Fortune (OpenGameArt)
+   - URL: https://opengameart.org/content/wheel-fortune
+   - License: CC0 1.0 Universal (Public Domain)
+
+6. Casino Table Felt base (`table_felt.png` base):
+   - Source: Chasersgaming - Asset Pack Pixel Poker (OpenGameArt)
+   - URL: https://opengameart.org/content/asset-pack-pixel-poker
+   - License: CC0 1.0 Universal (Public Domain)
+
+7. Mahogany Planks Wood Texture (`mahogany_wood.png`):
+   - Source: JoeEnderman - A Bunch of Colored Planks 16x Minecraft style (OpenGameArt)
+   - URL: https://opengameart.org/content/a-bunch-of-colored-planks-16x-minecraft-style
+   - License: CC0 1.0 Universal (Public Domain)

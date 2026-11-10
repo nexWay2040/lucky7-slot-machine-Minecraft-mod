@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "P": "minecraft:paper",
+    "I": "minecraft:ink_sac",
+    "G": "minecraft:gold_ingot"
+  },
+  "pattern": [
+    "PIP",
+    "PGP",
+    "PIP"
+  ],
+  "result": {
+    "count": 1,
+    "id": "lucky7:lucky_ace"
+  }
+}

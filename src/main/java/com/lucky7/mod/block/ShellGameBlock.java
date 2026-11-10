@@ -59,8 +59,8 @@ public class ShellGameBlock extends BaseEntityBlock {
             double localX = switch (facing) {
                 case NORTH -> 1.0 - dx;
                 case SOUTH -> dx;
-                case EAST -> dz;
-                case WEST -> 1.0 - dz;
+                case EAST -> 1.0 - dz;
+                case WEST -> dz;
                 default -> dx;
             };
 

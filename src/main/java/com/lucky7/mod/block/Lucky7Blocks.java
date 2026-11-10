@@ -33,9 +33,8 @@ public final class Lucky7Blocks {
         SLOT_MACHINE_KEY,
         Lucky7Block::new,
         BlockBehaviour.Properties.of()
-            .strength(5.0f, 15.0f)
+            .strength(3.5f, 12.0f)
             .sound(SoundType.METAL)
-            .requiresCorrectToolForDrops()
             .noOcclusion()
             .lightLevel(state -> 5)
     );
@@ -45,9 +44,8 @@ public final class Lucky7Blocks {
         LUCKY_WHEEL_KEY,
         LuckyWheelBlock::new,
         BlockBehaviour.Properties.of()
-            .strength(4.0f, 10.0f)
-            .sound(SoundType.METAL)
-            .requiresCorrectToolForDrops()
+            .strength(3.0f, 10.0f)
+            .sound(SoundType.WOOD)
             .noOcclusion()
             .lightLevel(state -> 8)
     );

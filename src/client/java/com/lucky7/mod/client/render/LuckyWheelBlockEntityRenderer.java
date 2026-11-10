@@ -21,26 +21,10 @@ import net.minecraft.world.phys.Vec3;
 import org.jspecify.annotations.Nullable;
 
 public class LuckyWheelBlockEntityRenderer implements BlockEntityRenderer<LuckyWheelBlockEntity, LuckyWheelBlockEntityRenderer.WheelRenderState> {
-    private static final Identifier GOLD = Lucky7Mod.id("textures/entity/gold.png");
-    private static final Identifier CABINET = Lucky7Mod.id("textures/entity/cabinet.png");
-    private static final Identifier BUTTON = Lucky7Mod.id("textures/entity/button_red.png");
-    private static final Identifier KNOB = Lucky7Mod.id("textures/entity/knob.png");
-
-    // 12 Rich Casino Sector Colors (Ruby, Gold, Emerald, Royal Purple, Diamond Cyan, Dark Velvet)
-    private static final int[] SECTOR_COLORS = {
-        0xFF20D8F0, // 0: Diamond Cyan
-        0xFFE8B828, // 1: Gold
-        0xFF9830E8, // 2: Royal Purple
-        0xFFE02838, // 3: Ruby Red
-        0xFF28D058, // 4: Emerald Green
-        0xFF242432, // 5: Dark Obsidian
-        0xFFE8B828, // 6: Gold
-        0xFF28D058, // 7: Emerald Green
-        0xFFE02838, // 8: Ruby Red
-        0xFF20D8F0, // 9: Cyan
-        0xFF9830E8, // 10: Purple
-        0xFFFFD700  // 11: Royal Gold
-    };
+    private static final Identifier MAHOGANY = Lucky7Mod.id("textures/entity/mahogany_wood.png");
+    private static final Identifier GOLD = Lucky7Mod.id("textures/entity/cup_gold_ornate.png");
+    private static final Identifier WHEEL_FACE = Lucky7Mod.id("textures/entity/wheel_face.png");
+    private static final Identifier WHEEL_ARROW = Lucky7Mod.id("textures/entity/wheel_arrow.png");
 
     public static final class WheelRenderState extends BlockEntityRenderState {
         public Direction facing = Direction.NORTH;
@@ -85,78 +69,125 @@ public class LuckyWheelBlockEntityRenderer implements BlockEntityRenderer<LuckyW
         matrices.rotate(Axis.YP.rotationDegrees(rot));
         matrices.translate(-0.5, 0.0, -0.5);
 
-        // 1. Luxury Casino Pedestal Stand
-        solidBox(matrices, vc, GOLD, 0.14f, 0.00f, 0.18f, 0.86f, 0.06f, 0.82f, light);
-        solidBox(matrices, vc, CABINET, 0.18f, 0.06f, 0.22f, 0.82f, 0.22f, 0.78f, light);
-        // Twin support pillars
-        solidBox(matrices, vc, CABINET, 0.36f, 0.22f, 0.34f, 0.64f, 1.32f, 0.50f, light);
-        solidBox(matrices, vc, GOLD, 0.34f, 0.22f, 0.32f, 0.66f, 0.28f, 0.52f, light);
-        // Top arch holding the ticker
-        solidBox(matrices, vc, GOLD, 0.42f, 1.32f, 0.36f, 0.58f, 1.92f, 0.52f, light);
-        solidBox(matrices, vc, GOLD, 0.42f, 1.84f, 0.36f, 0.58f, 1.92f, 0.66f, light);
+        // 1. Luxury Mahogany & Gold Casino Stand
+        solidBox(matrices, vc, GOLD, 0.14f, 0.00f, 0.16f, 0.86f, 0.05f, 0.84f, light);
+        solidBox(matrices, vc, MAHOGANY, 0.18f, 0.05f, 0.20f, 0.82f, 0.20f, 0.80f, light);
+        // Sturdy twin wooden column & golden collar
+        solidBox(matrices, vc, MAHOGANY, 0.37f, 0.20f, 0.34f, 0.63f, 1.32f, 0.50f, light);
+        solidBox(matrices, vc, GOLD, 0.34f, 0.20f, 0.32f, 0.66f, 0.26f, 0.52f, light);
+        // Top arched bracket for the pointer
+        solidBox(matrices, vc, MAHOGANY, 0.42f, 1.32f, 0.36f, 0.58f, 1.92f, 0.52f, light);
+        solidBox(matrices, vc, GOLD, 0.41f, 1.84f, 0.35f, 0.59f, 1.93f, 0.68f, light);
 
-        // 2. Rotating 12-Sector Wheel Disc (Center at X: 0.5, Y: 1.25, Z: 0.56)
+        // 2. Rotating 12-Sector UV-Mapped Fortune Wheel Disc (Center X: 0.5, Y: 1.25, Z: 0.56)
         matrices.pushPose();
         matrices.translate(0.5, 1.25, 0.56);
-        matrices.rotate(Axis.ZP.rotationDegrees(-state.angle));
+        // Positive Z rotation aligns sector i (+i*30 deg clockwise on wheel_face) directly under top pointer!
+        matrices.rotate(Axis.ZP.rotationDegrees(state.angle));
 
-        renderWheelDisc(matrices, vc, light);
+        renderTexturedWheelDisc(matrices, vc, light);
         matrices.popPose();
 
-        // 3. Golden Ticker Clapper at Top (Y: 1.84, Z: 0.62)
+        // 3. Top Red & Gold Ticker Clapper Pointer at 12 o'clock (Y: 1.84, Z: 0.64)
         matrices.pushPose();
-        matrices.translate(0.5, 1.84, 0.62);
+        matrices.translate(0.5, 1.84, 0.64);
         if (state.spinning) {
-            float flutter = Mth.sin((System.currentTimeMillis() % 360) * 0.08f) * 14.0f;
+            float flutter = Mth.sin((System.currentTimeMillis() % 360) * 0.09f) * 12.0f;
             matrices.rotate(Axis.ZP.rotationDegrees(flutter));
         }
-        solidBox(matrices, vc, BUTTON, -0.035f, -0.06f, -0.025f, 0.035f, 0.03f, 0.025f, 0x00F000F0);
-        solidBox(matrices, vc, GOLD, -0.016f, -0.14f, -0.016f, 0.016f, -0.05f, 0.016f, 0x00F000F0);
+        solidBox(matrices, vc, GOLD, -0.045f, -0.04f, -0.025f, 0.045f, 0.03f, 0.025f, 0x00F000F0);
+        solidBox(matrices, vc, WHEEL_ARROW, -0.025f, -0.15f, -0.018f, 0.025f, -0.03f, 0.018f, 0x00F000F0);
         matrices.popPose();
 
         matrices.popPose();
     }
 
-    private void renderWheelDisc(PoseStack matrices, SubmitNodeCollector vc, int light) {
-        float radius = 0.56f;
+    private void renderTexturedWheelDisc(PoseStack matrices, SubmitNodeCollector vc, int light) {
+        final float radius = 0.58f;
+        final float zFront = 0.032f;
+        final float zBack = -0.032f;
+        final int segments = 36;
 
-        // Back plate of wheel
-        solidBox(matrices, vc, CABINET, -0.38f, -0.38f, -0.04f, 0.38f, 0.38f, -0.005f, light);
+        // Front textured face using high-res 512x512 wheel_face.png!
+        vc.submitCustomGeometry(matrices, RenderTypes.entityCutout(WHEEL_FACE), (pose, b) -> {
+            for (int i = 0; i < segments; i++) {
+                double a1 = (i * 2.0 * Math.PI) / segments;
+                double a2 = ((i + 1) * 2.0 * Math.PI) / segments;
 
-        // 12 Colored Sectors + Rim Pegs
-        vc.submitCustomGeometry(matrices, RenderTypes.entityCutout(GOLD), (pose, b) -> {
-            for (int i = 0; i < 12; i++) {
-                float a1 = (float) Math.toRadians(i * 30.0);
-                float a2 = (float) Math.toRadians((i + 1) * 30.0);
+                float x1 = (float) Math.sin(a1) * radius;
+                float y1 = (float) Math.cos(a1) * radius;
+                float x2 = (float) Math.sin(a2) * radius;
+                float y2 = (float) Math.cos(a2) * radius;
 
-                float x1 = Mth.sin(a1) * radius;
-                float y1 = Mth.cos(a1) * radius;
-                float x2 = Mth.sin(a2) * radius;
-                float y2 = Mth.cos(a2) * radius;
+                // Map circular XY cleanly onto wheel_face.png UV [0..1] (Y down in texture: v = 0.5 - y/(2*R))
+                float u1 = 0.5f + (x1 / (2.0f * radius));
+                float v1 = 0.5f - (y1 / (2.0f * radius));
+                float u2 = 0.5f + (x2 / (2.0f * radius));
+                float v2 = 0.5f - (y2 / (2.0f * radius));
 
-                int color = SECTOR_COLORS[i % SECTOR_COLORS.length];
-                int red = (color >> 16) & 0xFF;
-                int green = (color >> 8) & 0xFF;
-                int blue = color & 0xFF;
-
-                b.addVertex(pose, 0.0f, 0.0f, 0.01f).setColor(red, green, blue, 255).setUv(0.5f, 0.5f).setOverlay(OverlayTexture.NO_OVERLAY).setLight(0x00F000F0).setNormal(pose, 0, 0, 1);
-                b.addVertex(pose, x1, y1, 0.01f).setColor(red, green, blue, 255).setUv(0.0f, 1.0f).setOverlay(OverlayTexture.NO_OVERLAY).setLight(0x00F000F0).setNormal(pose, 0, 0, 1);
-                b.addVertex(pose, x2, y2, 0.01f).setColor(red, green, blue, 255).setUv(1.0f, 1.0f).setOverlay(OverlayTexture.NO_OVERLAY).setLight(0x00F000F0).setNormal(pose, 0, 0, 1);
-                b.addVertex(pose, x2, y2, 0.01f).setColor(red, green, blue, 255).setUv(1.0f, 1.0f).setOverlay(OverlayTexture.NO_OVERLAY).setLight(0x00F000F0).setNormal(pose, 0, 0, 1);
+                // Outward-facing CCW quad degenerate fan (0 -> 2 -> 1 -> 1 so front +Z faces camera cleanly)
+                b.addVertex(pose, 0.0f, 0.0f, zFront).setColor(255, 255, 255, 255).setUv(0.5f, 0.5f).setOverlay(OverlayTexture.NO_OVERLAY).setLight(0x00F000F0).setNormal(pose, 0, 0, 1);
+                b.addVertex(pose, x2, y2, zFront).setColor(255, 255, 255, 255).setUv(u2, v2).setOverlay(OverlayTexture.NO_OVERLAY).setLight(0x00F000F0).setNormal(pose, 0, 0, 1);
+                b.addVertex(pose, x1, y1, zFront).setColor(255, 255, 255, 255).setUv(u1, v1).setOverlay(OverlayTexture.NO_OVERLAY).setLight(0x00F000F0).setNormal(pose, 0, 0, 1);
+                b.addVertex(pose, x1, y1, zFront).setColor(255, 255, 255, 255).setUv(u1, v1).setOverlay(OverlayTexture.NO_OVERLAY).setLight(0x00F000F0).setNormal(pose, 0, 0, 1);
             }
         });
 
-        // 12 Golden Rim Pegs around the circumference
+        // Mahogany wood back face (-Z)
+        vc.submitCustomGeometry(matrices, RenderTypes.entityCutout(MAHOGANY), (pose, b) -> {
+            for (int i = 0; i < segments; i++) {
+                double a1 = (i * 2.0 * Math.PI) / segments;
+                double a2 = ((i + 1) * 2.0 * Math.PI) / segments;
+
+                float x1 = (float) Math.sin(a1) * radius;
+                float y1 = (float) Math.cos(a1) * radius;
+                float x2 = (float) Math.sin(a2) * radius;
+                float y2 = (float) Math.cos(a2) * radius;
+
+                float u1 = 0.5f + (x1 / (2.0f * radius));
+                float v1 = 0.5f - (y1 / (2.0f * radius));
+                float u2 = 0.5f + (x2 / (2.0f * radius));
+                float v2 = 0.5f - (y2 / (2.0f * radius));
+
+                b.addVertex(pose, 0.0f, 0.0f, zBack).setColor(255, 255, 255, 255).setUv(0.5f, 0.5f).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, 0, 0, -1);
+                b.addVertex(pose, x1, y1, zBack).setColor(255, 255, 255, 255).setUv(u1, v1).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, 0, 0, -1);
+                b.addVertex(pose, x2, y2, zBack).setColor(255, 255, 255, 255).setUv(u2, v2).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, 0, 0, -1);
+                b.addVertex(pose, x2, y2, zBack).setColor(255, 255, 255, 255).setUv(u2, v2).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, 0, 0, -1);
+            }
+        });
+
+        // Gold outer rim thickness connecting front and back
+        vc.submitCustomGeometry(matrices, RenderTypes.entityCutout(GOLD), (pose, b) -> {
+            for (int i = 0; i < segments; i++) {
+                double a1 = (i * 2.0 * Math.PI) / segments;
+                double a2 = ((i + 1) * 2.0 * Math.PI) / segments;
+
+                float x1 = (float) Math.sin(a1) * radius;
+                float y1 = (float) Math.cos(a1) * radius;
+                float x2 = (float) Math.sin(a2) * radius;
+                float y2 = (float) Math.cos(a2) * radius;
+
+                float nx = (float) Math.sin((a1 + a2) * 0.5);
+                float ny = (float) Math.cos((a1 + a2) * 0.5);
+
+                b.addVertex(pose, x1, y1, zBack).setColor(255, 255, 255, 255).setUv(0.0f, 0.0f).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, nx, ny, 0);
+                b.addVertex(pose, x1, y1, zFront).setColor(255, 255, 255, 255).setUv(0.0f, 1.0f).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, nx, ny, 0);
+                b.addVertex(pose, x2, y2, zFront).setColor(255, 255, 255, 255).setUv(1.0f, 1.0f).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, nx, ny, 0);
+                b.addVertex(pose, x2, y2, zBack).setColor(255, 255, 255, 255).setUv(1.0f, 0.0f).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, nx, ny, 0);
+            }
+        });
+
+        // 12 brass divider pegs right between every sector (at +15 deg offset!)
         for (int i = 0; i < 12; i++) {
             matrices.pushPose();
-            matrices.rotate(Axis.ZP.rotationDegrees(i * 30.0f));
-            solidBox(matrices, vc, GOLD, -0.025f, radius - 0.03f, -0.02f, 0.025f, radius + 0.02f, 0.035f, 0x00F000F0);
+            matrices.rotate(Axis.ZP.rotationDegrees(i * 30.0f + 15.0f));
+            solidBox(matrices, vc, GOLD, -0.018f, radius - 0.03f, zFront - 0.01f, 0.018f, radius + 0.025f, zFront + 0.022f, 0x00F000F0);
             matrices.popPose();
         }
 
-        // Center Golden Hub Cap & Ruby Jewel
-        solidBox(matrices, vc, GOLD, -0.09f, -0.09f, -0.02f, 0.09f, 0.09f, 0.035f, light);
-        solidBox(matrices, vc, KNOB, -0.05f, -0.05f, 0.02f, 0.05f, 0.05f, 0.055f, 0x00F000F0);
+        // Center Golden Hub Cap
+        solidBox(matrices, vc, GOLD, -0.08f, -0.08f, zFront - 0.01f, 0.08f, 0.08f, zFront + 0.028f, light);
+        solidBox(matrices, vc, WHEEL_ARROW, -0.045f, -0.045f, zFront + 0.022f, 0.045f, 0.045f, zFront + 0.045f, 0x00F000F0);
     }
 
     private void solidBox(PoseStack m, SubmitNodeCollector vc, Identifier tex, float x0, float y0, float z0, float x1, float y1, float z1, int light) {

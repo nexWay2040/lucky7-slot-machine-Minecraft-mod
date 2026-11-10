@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "E": "minecraft:emerald",
+    "C": "lucky7:golden_chip"
+  },
+  "pattern": [
+    " E ",
+    "ECE",
+    " E "
+  ],
+  "result": {
+    "count": 2,
+    "id": "lucky7:emerald_chip"
+  }
+}

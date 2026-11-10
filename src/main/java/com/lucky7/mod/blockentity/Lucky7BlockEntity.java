@@ -511,25 +511,6 @@ public class Lucky7BlockEntity extends BlockEntity implements Container, Extende
                 be.clientSpinStart = System.currentTimeMillis();
                 be.lastReelStoppedClient = -1;
             }
-            long elapsed = System.currentTimeMillis() - be.clientSpinStart;
-            float progress = Math.min(1.0f, (float) elapsed / (be.spinTicks * 50.0f));
-
-            // Tactile mechanical stop clicks for each reel
-            if (progress >= 0.50f && be.lastReelStoppedClient < 0) {
-                be.lastReelStoppedClient = 0;
-                world.playLocalSound(pos.getX() + 0.5, pos.getY() + 1.4, pos.getZ() + 0.5,
-                    SoundEvents.PISTON_EXTEND, SoundSource.BLOCKS, 0.75f, 1.35f, false);
-            }
-            if (progress >= 0.75f && be.lastReelStoppedClient < 1) {
-                be.lastReelStoppedClient = 1;
-                world.playLocalSound(pos.getX() + 0.5, pos.getY() + 1.4, pos.getZ() + 0.5,
-                    SoundEvents.PISTON_EXTEND, SoundSource.BLOCKS, 0.85f, 1.65f, false);
-            }
-            if (progress >= 1.00f && be.lastReelStoppedClient < 2) {
-                be.lastReelStoppedClient = 2;
-                world.playLocalSound(pos.getX() + 0.5, pos.getY() + 1.4, pos.getZ() + 0.5,
-                    SoundEvents.ANVIL_PLACE, SoundSource.BLOCKS, 0.55f, 1.85f, false);
-            }
         } else {
             be.clientSpinStart = -1;
             be.lastReelStoppedClient = -1;
@@ -903,6 +884,15 @@ public class Lucky7BlockEntity extends BlockEntity implements Container, Extende
     public boolean stillValid(Player player) {
         return level != null && level.getBlockEntity(worldPosition) == this &&
             player.distanceToSqr(worldPosition.getX() + 0.5, worldPosition.getY() + 0.5, worldPosition.getZ() + 0.5) <= 64.0;
+    }
+
+    @Override
+    public void preRemoveSideEffects(BlockPos pos, BlockState state) {
+        // Clear all 27 read-only prize showcase slots so breaking the machine NEVER drops showcase prizes!
+        for (int i = STAKE_SLOTS; i < TOTAL_SLOTS; i++) {
+            items.set(i, ItemStack.EMPTY);
+        }
+        super.preRemoveSideEffects(pos, state);
     }
 
     @Override

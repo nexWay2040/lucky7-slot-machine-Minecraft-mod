@@ -16,7 +16,12 @@ import java.util.function.Function;
 public final class Lucky7Items {
     public static final ResourceKey<Item> CASINO_CONTRACT_KEY = ResourceKey.create(Registries.ITEM, Lucky7Mod.id("casino_contract"));
     public static final ResourceKey<Item> GOLDEN_CHIP_KEY = ResourceKey.create(Registries.ITEM, Lucky7Mod.id("golden_chip"));
+    public static final ResourceKey<Item> EMERALD_CHIP_KEY = ResourceKey.create(Registries.ITEM, Lucky7Mod.id("emerald_chip"));
+    public static final ResourceKey<Item> DIAMOND_CHIP_KEY = ResourceKey.create(Registries.ITEM, Lucky7Mod.id("diamond_chip"));
     public static final ResourceKey<Item> LUCKY_COIN_KEY = ResourceKey.create(Registries.ITEM, Lucky7Mod.id("lucky_coin"));
+    public static final ResourceKey<Item> LUCKY_DICE_KEY = ResourceKey.create(Registries.ITEM, Lucky7Mod.id("lucky_dice"));
+    public static final ResourceKey<Item> LUCKY_ACE_KEY = ResourceKey.create(Registries.ITEM, Lucky7Mod.id("lucky_ace"));
+    public static final ResourceKey<Item> LUCKY_CLOVER_KEY = ResourceKey.create(Registries.ITEM, Lucky7Mod.id("lucky_clover"));
     public static final ResourceKey<Item> LEAFXUP_TROPHY_KEY = ResourceKey.create(Registries.ITEM, Lucky7Mod.id("leafxup_trophy"));
 
     public static final Item CASINO_CONTRACT = registerItem(
@@ -31,8 +36,38 @@ public final class Lucky7Items {
         new Item.Properties().stacksTo(64).rarity(Rarity.RARE)
     );
 
+    public static final Item EMERALD_CHIP = registerItem(
+        EMERALD_CHIP_KEY,
+        Item::new,
+        new Item.Properties().stacksTo(64).rarity(Rarity.RARE)
+    );
+
+    public static final Item DIAMOND_CHIP = registerItem(
+        DIAMOND_CHIP_KEY,
+        Item::new,
+        new Item.Properties().stacksTo(64).rarity(Rarity.EPIC)
+    );
+
     public static final Item LUCKY_COIN = registerItem(
         LUCKY_COIN_KEY,
+        Item::new,
+        new Item.Properties().stacksTo(64).rarity(Rarity.UNCOMMON)
+    );
+
+    public static final Item LUCKY_DICE = registerItem(
+        LUCKY_DICE_KEY,
+        LuckyDiceItem::new,
+        new Item.Properties().stacksTo(16).rarity(Rarity.RARE)
+    );
+
+    public static final Item LUCKY_ACE = registerItem(
+        LUCKY_ACE_KEY,
+        Item::new,
+        new Item.Properties().stacksTo(16).rarity(Rarity.RARE)
+    );
+
+    public static final Item LUCKY_CLOVER = registerItem(
+        LUCKY_CLOVER_KEY,
         Item::new,
         new Item.Properties().stacksTo(64).rarity(Rarity.UNCOMMON)
     );
@@ -53,15 +88,25 @@ public final class Lucky7Items {
     public static void register() {
         CreativeModeTabEvents.modifyOutputEvent(Lucky7Blocks.LUCKY7_GROUP_KEY).register(entries -> {
             entries.accept(CASINO_CONTRACT);
-            entries.accept(GOLDEN_CHIP);
             entries.accept(LUCKY_COIN);
+            entries.accept(GOLDEN_CHIP);
+            entries.accept(EMERALD_CHIP);
+            entries.accept(DIAMOND_CHIP);
+            entries.accept(LUCKY_DICE);
+            entries.accept(LUCKY_ACE);
+            entries.accept(LUCKY_CLOVER);
             entries.accept(LEAFXUP_TROPHY);
         });
 
         CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.FUNCTIONAL_BLOCKS).register(entries -> {
             entries.accept(CASINO_CONTRACT);
-            entries.accept(GOLDEN_CHIP);
             entries.accept(LUCKY_COIN);
+            entries.accept(GOLDEN_CHIP);
+            entries.accept(EMERALD_CHIP);
+            entries.accept(DIAMOND_CHIP);
+            entries.accept(LUCKY_DICE);
+            entries.accept(LUCKY_ACE);
+            entries.accept(LUCKY_CLOVER);
             entries.accept(LEAFXUP_TROPHY);
         });
     }

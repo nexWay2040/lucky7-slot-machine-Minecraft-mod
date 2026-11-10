@@ -18,8 +18,11 @@ import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityTypes;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.LightningBolt;
 import net.minecraft.world.entity.animal.chicken.Chicken;
 import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.monster.skeleton.Skeleton;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -30,14 +33,16 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 
+import java.util.UUID;
+
 public class LuckyWheelBlockEntity extends BlockEntity {
     private boolean spinning = false;
     private float angle = 0.0f;
-    private float velocity = 0.0f;
+    private float finalTargetAngle = 0.0f;
     private int targetSector = 0;
     private long spinStartTime = 0;
-    private final int spinDurationTicks = 80; // 4 seconds spin
-    private float lastClickAngle = 0.0f;
+    private final int spinDurationTicks = 70; // 3.5s clean spin
+    private UUID activePlayerId = null;
 
     public LuckyWheelBlockEntity(BlockPos pos, BlockState state) {
         super(Lucky7BlockEntities.LUCKY_WHEEL, pos, state);
@@ -50,11 +55,20 @@ public class LuckyWheelBlockEntity extends BlockEntity {
         if (spinning) return;
         if (level == null || level.isClientSide()) return;
 
-        // Player can pay 1 Lucky Coin, 1 Golden Chip, 1 Gold Ingot, or 1 Diamond
+        // Accepts 2 Emeralds, 1 Lucky Coin, any Casino Chip, Gold Ingot, or Diamond
         boolean paid = false;
         for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
             ItemStack st = player.getInventory().getItem(i);
-            if (st.is(Lucky7Items.LUCKY_COIN) || st.is(Lucky7Items.GOLDEN_CHIP) || st.is(Items.GOLD_INGOT) || st.is(Items.DIAMOND)) {
+            if (st.is(Items.EMERALD) && st.getCount() >= 2) {
+                st.shrink(2);
+                paid = true;
+                break;
+            } else if (st.is(Lucky7Items.LUCKY_COIN)
+                    || st.is(Lucky7Items.GOLDEN_CHIP)
+                    || st.is(Lucky7Items.EMERALD_CHIP)
+                    || st.is(Lucky7Items.DIAMOND_CHIP)
+                    || st.is(Items.GOLD_INGOT)
+                    || st.is(Items.DIAMOND)) {
                 st.shrink(1);
                 paid = true;
                 break;
@@ -63,35 +77,33 @@ public class LuckyWheelBlockEntity extends BlockEntity {
 
         if (!paid && !player.isCreative()) {
             if (player instanceof ServerPlayer sp) {
-                sp.sendOverlayMessage(Component.literal("⚠ Для вращения Колеса Сансары нужна Счастливая Монета, Золотой Слиток или Алмаз!").withStyle(ChatFormatting.YELLOW));
+                sp.sendOverlayMessage(Component.literal("⚠ Для вращения Колеса нужна Фишка, Монета Удачи, 2 Изумруда или Алмаз!").withStyle(ChatFormatting.YELLOW));
             }
-            level.playSound(null, worldPosition, SoundEvents.CHEST_LOCKED, SoundSource.BLOCKS, 0.8f, 1.2f);
             return;
         }
 
         spinning = true;
         spinStartTime = level.getGameTime();
+        activePlayerId = player.getUUID();
         targetSector = level.getRandom().nextInt(12);
 
-        // Target angle calculation (12 sectors = 30 deg each)
-        int fullRotations = 5 + level.getRandom().nextInt(4);
-        float finalAngle = fullRotations * 360.0f + (targetSector * 30.0f) + 15.0f;
-        velocity = (finalAngle * 2.0f) / spinDurationTicks;
+        // Normalize current angle into [0..360) and compute forward target angle aligned to sector
+        float baseMod = ((angle % 360.0f) + 360.0f) % 360.0f;
+        angle = baseMod;
+        int fullRotations = 4 + level.getRandom().nextInt(3);
+        finalTargetAngle = fullRotations * 360.0f + (targetSector * 30.0f);
 
-        level.playSound(null, worldPosition, SoundEvents.PISTON_EXTEND, SoundSource.BLOCKS, 1.0f, 1.4f);
+        level.playSound(null, worldPosition, SoundEvents.UI_BUTTON_CLICK.value(), SoundSource.BLOCKS, 0.8f, 1.2f);
         markDirtyAndSync();
     }
 
     public static void clientTick(Level world, BlockPos pos, BlockState state, LuckyWheelBlockEntity wheel) {
         if (wheel.spinning) {
-            wheel.angle += wheel.velocity;
-            wheel.velocity = Math.max(0.0f, wheel.velocity - (wheel.velocity / 40.0f));
-
-            // Mechanical peg click sound on each 30-degree sector pass
-            if (Math.abs(wheel.angle - wheel.lastClickAngle) >= 30.0f) {
-                wheel.lastClickAngle = wheel.angle;
-                world.playLocalSound(pos.getX() + 0.5, pos.getY() + 1.2, pos.getZ() + 0.5,
-                    SoundEvents.NOTE_BLOCK_HAT.value(), SoundSource.BLOCKS, 0.8f, 1.6f, false);
+            float diff = wheel.finalTargetAngle - wheel.angle;
+            if (diff > 0.4f) {
+                wheel.angle += Math.max(1.1f, diff * 0.088f);
+            } else {
+                wheel.angle = wheel.finalTargetAngle;
             }
         }
     }
@@ -101,88 +113,132 @@ public class LuckyWheelBlockEntity extends BlockEntity {
 
         if (world.getGameTime() >= wheel.spinStartTime + wheel.spinDurationTicks) {
             wheel.spinning = false;
-            wheel.velocity = 0.0f;
+            wheel.angle = wheel.targetSector * 30.0f;
+            wheel.finalTargetAngle = wheel.angle;
             if (world instanceof ServerLevel sw) {
-                wheel.triggerSectorReward(sw, wheel.targetSector);
+                Player p = wheel.activePlayerId != null ? sw.getServer().getPlayerList().getPlayer(wheel.activePlayerId) : null;
+                wheel.triggerSectorReward(sw, p, wheel.targetSector);
             }
             wheel.markDirtyAndSync();
         }
     }
 
-    private void triggerSectorReward(ServerLevel sw, int sector) {
-        sw.playSound(null, worldPosition, SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundSource.BLOCKS, 1.0f, 1.1f);
-        sw.sendParticles(ParticleTypes.FIREWORK, worldPosition.getX() + 0.5, worldPosition.getY() + 1.8, worldPosition.getZ() + 0.5, 30, 0.3, 0.5, 0.3, 0.1);
-
+    private void triggerSectorReward(ServerLevel sw, Player activePlayer, int sector) {
         switch (sector) {
-            case 0 -> { // Diamond Jackpot
-                broadcast("💎 МЕГА-ДЖЕКПОТ! Колесо выдало 32 Алмаза и 4 Золотые Фишки!", ChatFormatting.AQUA);
-                dropItem(sw, new ItemStack(Items.DIAMOND, 32));
-                dropItem(sw, new ItemStack(Lucky7Items.GOLDEN_CHIP, 4));
+            case 0 -> { // 777 JACKPOT (Gold - GOOD)
+                broadcast("👑 [СЕКТОР 777] ДЖЕКПОТ! +32 Изумруда, +16 Алмазов и 4 Изумрудные Фишки!", ChatFormatting.GOLD);
+                sw.playSound(null, worldPosition, SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundSource.BLOCKS, 1.0f, 1.1f);
+                sw.sendParticles(ParticleTypes.TOTEM_OF_UNDYING, worldPosition.getX() + 0.5, worldPosition.getY() + 1.5, worldPosition.getZ() + 0.5, 45, 0.4, 0.5, 0.4, 0.15);
+                dropItem(sw, new ItemStack(Items.EMERALD, 32));
+                dropItem(sw, new ItemStack(Items.DIAMOND, 16));
+                dropItem(sw, new ItemStack(Lucky7Items.EMERALD_CHIP, 4));
             }
-            case 1 -> { // Chicken Apocalypse (Streamer Prank)
-                broadcast("🐔 КУРИНЫЙ АПОКАЛИПСИС! На базе высадился десант из 12 боевых кур!", ChatFormatting.YELLOW);
-                for (int i = 0; i < 12; i++) {
-                    Chicken chicken = EntityTypes.CHICKEN.spawn(sw, worldPosition.above(), EntitySpawnReason.EVENT);
-                    if (chicken != null) {
-                        chicken.setCustomName(Component.literal("🐔 Курьер Синдиката").withStyle(ChatFormatting.YELLOW));
-                        chicken.setDeltaMovement((sw.getRandom().nextDouble() - 0.5) * 0.4, 0.35, (sw.getRandom().nextDouble() - 0.5) * 0.4);
-                    }
+            case 1 -> { // SKULL -8 EM (Black - BAD)
+                broadcast("💀 [ЧЕРЕП -8] Проклятие мафии! Вы теряете 8 Изумрудов и получаете Иссушение!", ChatFormatting.RED);
+                sw.playSound(null, worldPosition, SoundEvents.WITHER_HURT, SoundSource.HOSTILE, 0.85f, 0.85f);
+                sw.sendParticles(ParticleTypes.LARGE_SMOKE, worldPosition.getX() + 0.5, worldPosition.getY() + 1.3, worldPosition.getZ() + 0.5, 25, 0.3, 0.3, 0.3, 0.05);
+                if (activePlayer != null) {
+                    stealEmeralds(activePlayer, 8);
+                    activePlayer.hurtServer(sw, sw.damageSources().wither(), 5.0f);
+                    activePlayer.addEffect(new MobEffectInstance(MobEffects.WITHER, 100, 1));
                 }
             }
-            case 2 -> { // Space Levitation (Streamer Prank)
-                broadcast("🚀 КОСМИЧЕСКАЯ ПРОГРАММА ЛИФИКСАПА! Испытайте невесомость!", ChatFormatting.LIGHT_PURPLE);
-                for (ServerPlayer p : sw.players()) {
-                    if (p.distanceToSqr(worldPosition.getX() + 0.5, worldPosition.getY() + 0.5, worldPosition.getZ() + 0.5) <= 36.0) {
-                        p.addEffect(new MobEffectInstance(MobEffects.LEVITATION, 80, 2));
-                        p.addEffect(new MobEffectInstance(MobEffects.SLOW_FALLING, 200, 0));
-                    }
-                }
-            }
-            case 3 -> { // Gold Shower
-                broadcast("💰 ЗОЛОТОЙ ДОЖДЬ! +64 Золотых самородка и 8 Счастливых Монет!", ChatFormatting.GOLD);
-                dropItem(sw, new ItemStack(Items.GOLD_NUGGET, 64));
-                dropItem(sw, new ItemStack(Lucky7Items.LUCKY_COIN, 8));
-            }
-            case 4 -> { // God Apple
-                broadcast("🍏 БОЖЕСТВЕННЫЙ ДАР! Зачарованное золотое яблоко!", ChatFormatting.LIGHT_PURPLE);
-                dropItem(sw, new ItemStack(Items.ENCHANTED_GOLDEN_APPLE, 1));
-            }
-            case 5 -> { // Fake Creeper Hiss Prank
-                broadcast("🐍 ПССС... ШУТКА ОТ ДОНА КРИПЕРИОНЕ! Держи утешительные Изумруды!", ChatFormatting.GREEN);
-                sw.playSound(null, worldPosition, SoundEvents.CREEPER_PRIMED, SoundSource.HOSTILE, 1.2f, 1.0f);
-                dropItem(sw, new ItemStack(Items.EMERALD, 8));
-            }
-            case 6 -> { // Thunder & Iron
-                broadcast("⚡ ГРОМОВАЯ УДАЧА! +8 Железных блоков!", ChatFormatting.YELLOW);
-                sw.sendParticles(ParticleTypes.TOTEM_OF_UNDYING, worldPosition.getX() + 0.5, worldPosition.getY() + 1.5, worldPosition.getZ() + 0.5, 25, 0.3, 0.3, 0.3, 0.1);
-                sw.playSound(null, worldPosition, SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.WEATHER, 0.9f, 1.0f);
-                dropItem(sw, new ItemStack(Items.IRON_BLOCK, 8));
-            }
-            case 7 -> { // Emerald Rain
-                broadcast("❇ ИЗУМРУДНЫЙ КУШ: 24 Изумруда!", ChatFormatting.GREEN);
+            case 2 -> { // +24 EM (Green - GOOD)
+                broadcast("❇ [СЕКТОР +24] Изумрудный куш! +24 Изумруда и 2 Золотые Фишки!", ChatFormatting.GREEN);
+                sw.playSound(null, worldPosition, SoundEvents.EXPERIENCE_ORB_PICKUP, SoundSource.BLOCKS, 1.0f, 1.2f);
                 dropItem(sw, new ItemStack(Items.EMERALD, 24));
-            }
-            case 8 -> { // Netherite Scraps
-                broadcast("🔥 АДСКИЙ КЛАД: 4 Древних обломка!", ChatFormatting.DARK_RED);
-                dropItem(sw, new ItemStack(Items.ANCIENT_DEBRIS, 4));
-            }
-            case 9 -> { // Mining Haste Buff
-                broadcast("⛏ БЛАГОСЛОВЕНИЕ ШАХТЁРА: Спешка II и Скорость II на 3 минуты!", ChatFormatting.GOLD);
-                for (ServerPlayer p : sw.players()) {
-                    if (p.distanceToSqr(worldPosition.getX() + 0.5, worldPosition.getY() + 0.5, worldPosition.getZ() + 0.5) <= 36.0) {
-                        p.addEffect(new MobEffectInstance(MobEffects.HASTE, 3600, 1));
-                        p.addEffect(new MobEffectInstance(MobEffects.SPEED, 3600, 1));
-                    }
-                }
-            }
-            case 10 -> { // Mystery Fireworks + Chips
-                broadcast("🎆 ПРАЗДНИК В КАЗИНО! 32 Фейерверка и 2 Золотые Фишки!", ChatFormatting.LIGHT_PURPLE);
-                dropItem(sw, new ItemStack(Items.FIREWORK_ROCKET, 32));
                 dropItem(sw, new ItemStack(Lucky7Items.GOLDEN_CHIP, 2));
             }
-            default -> { // Totem of Undying
-                broadcast("👑 КОРОЛЕВСКИЙ СЕКТОР: Тотем Бессмертия!", ChatFormatting.GOLD);
+            case 3 -> { // TNT BOOM (Red - BAD)
+                broadcast("💣 [СЕКТОР TNT] ВЗРЫВНАЯ ЛОВУШКА! Бум прямо в лицо!", ChatFormatting.DARK_RED);
+                sw.playSound(null, worldPosition, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.BLOCKS, 0.9f, 1.0f);
+                sw.sendParticles(ParticleTypes.EXPLOSION_EMITTER, worldPosition.getX() + 0.5, worldPosition.getY() + 1.1, worldPosition.getZ() + 0.5, 2, 0.1, 0.1, 0.1, 0.0);
+                for (ServerPlayer p : sw.players()) {
+                    if (p.distanceToSqr(worldPosition.getX() + 0.5, worldPosition.getY() + 0.5, worldPosition.getZ() + 0.5) <= 25.0) {
+                        p.hurtServer(sw, sw.damageSources().explosion(null, null), 6.0f);
+                        p.setDeltaMovement(0.0, 0.85, 0.0);
+                        p.syncVelocity = true;
+                    }
+                }
+            }
+            case 4 -> { // +16 DIA (Cyan - GOOD)
+                broadcast("💎 [СЕКТОР +16] Алмазная россыпь! +16 Алмазов и 2 Золотые Фишки!", ChatFormatting.AQUA);
+                sw.playSound(null, worldPosition, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.BLOCKS, 1.0f, 1.3f);
+                dropItem(sw, new ItemStack(Items.DIAMOND, 16));
+                dropItem(sw, new ItemStack(Lucky7Items.GOLDEN_CHIP, 2));
+            }
+            case 5 -> { // TRAP (Dark Purple - BAD)
+                broadcast("🗡 [СЕКТОР TRAP] ЗАСАДА! На вас напал охранник Дона Криперионе!", ChatFormatting.RED);
+                sw.playSound(null, worldPosition, SoundEvents.CREEPER_PRIMED, SoundSource.HOSTILE, 0.9f, 0.95f);
+                Skeleton guard = EntityTypes.SKELETON.spawn(sw, worldPosition.above(), EntitySpawnReason.EVENT);
+                if (guard != null) {
+                    guard.setCustomName(Component.literal("🕶 Охранник Рулетки").withStyle(ChatFormatting.RED, ChatFormatting.BOLD));
+                    guard.setCustomNameVisible(true);
+                    guard.setItemSlot(EquipmentSlot.HEAD, new ItemStack(Items.IRON_HELMET));
+                    guard.setItemSlot(EquipmentSlot.CHEST, new ItemStack(Items.GOLDEN_CHESTPLATE));
+                    guard.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(Items.IRON_AXE));
+                    guard.addEffect(new MobEffectInstance(MobEffects.SPEED, 2400, 1));
+                }
+            }
+            case 6 -> { // GIFT APPLE (Green - GOOD)
+                broadcast("🍏 [СЕКТОР GIFT] Зачарованное Золотое Яблоко + 16 Изумрудов!", ChatFormatting.LIGHT_PURPLE);
+                sw.playSound(null, worldPosition, SoundEvents.EXPERIENCE_ORB_PICKUP, SoundSource.BLOCKS, 1.0f, 1.3f);
+                dropItem(sw, new ItemStack(Items.ENCHANTED_GOLDEN_APPLE, 1));
+                dropItem(sw, new ItemStack(Items.EMERALD, 16));
+            }
+            case 7 -> { // FLY! (Red - BAD)
+                broadcast("🚀 [СЕКТОР FLY!] Катапульта! Полёт в стратосферу без парашюта!", ChatFormatting.RED);
+                sw.playSound(null, worldPosition, SoundEvents.FIREWORK_ROCKET_LAUNCH, SoundSource.BLOCKS, 0.9f, 0.9f);
+                for (ServerPlayer p : sw.players()) {
+                    if (p.distanceToSqr(worldPosition.getX() + 0.5, worldPosition.getY() + 0.5, worldPosition.getZ() + 0.5) <= 25.0) {
+                        p.addEffect(new MobEffectInstance(MobEffects.LEVITATION, 55, 6));
+                    }
+                }
+            }
+            case 8 -> { // +20 DEBRIS & COINS (Amber - GOOD)
+                broadcast("🪙 [СЕКТОР +20] Золотой тайник! +20 Изумрудов, 4 Древних обломка и 4 Монеты!", ChatFormatting.GOLD);
+                sw.playSound(null, worldPosition, SoundEvents.EXPERIENCE_ORB_PICKUP, SoundSource.BLOCKS, 1.0f, 1.15f);
+                dropItem(sw, new ItemStack(Items.EMERALD, 20));
+                dropItem(sw, new ItemStack(Items.ANCIENT_DEBRIS, 4));
+                dropItem(sw, new ItemStack(Lucky7Items.LUCKY_COIN, 4));
+            }
+            case 9 -> { // HEX (Black - BAD)
+                broadcast("🐔 [СЕКТОР HEX] Проклятие лудомана: тошнота, голод и куриный переполох!", ChatFormatting.RED);
+                for (int i = 0; i < 6; i++) {
+                    Chicken c = EntityTypes.CHICKEN.spawn(sw, worldPosition.above(), EntitySpawnReason.EVENT);
+                    if (c != null) c.setCustomName(Component.literal("🐔 Курьер Налогов").withStyle(ChatFormatting.RED));
+                }
+                for (ServerPlayer p : sw.players()) {
+                    if (p.distanceToSqr(worldPosition.getX() + 0.5, worldPosition.getY() + 0.5, worldPosition.getZ() + 0.5) <= 25.0) {
+                        p.addEffect(new MobEffectInstance(MobEffects.HUNGER, 240, 3));
+                        p.addEffect(new MobEffectInstance(MobEffects.NAUSEA, 140, 0));
+                    }
+                }
+            }
+            case 10 -> { // SAVE TOTEM (Green - GOOD)
+                broadcast("👑 [СЕКТОР SAVE] Тотем Бессмертия + 16 Изумрудов!", ChatFormatting.GREEN);
+                sw.playSound(null, worldPosition, SoundEvents.EXPERIENCE_ORB_PICKUP, SoundSource.BLOCKS, 1.0f, 1.3f);
                 dropItem(sw, new ItemStack(Items.TOTEM_OF_UNDYING, 1));
+                dropItem(sw, new ItemStack(Items.EMERALD, 16));
+            }
+            default -> { // ZAP! (Red - BAD)
+                broadcast("⚡ [СЕКТОР ZAP!] МОЛНИЯ С НЕБЕС! Разряд прямо по игроку!", ChatFormatting.DARK_RED);
+                if (activePlayer != null) {
+                    LightningBolt bolt = EntityTypes.LIGHTNING_BOLT.spawn(sw, activePlayer.blockPosition(), EntitySpawnReason.EVENT);
+                    if (bolt != null) bolt.setVisualOnly(false);
+                }
+            }
+        }
+    }
+
+    private void stealEmeralds(Player player, int amount) {
+        int remaining = amount;
+        for (int i = 0; i < player.getInventory().getContainerSize() && remaining > 0; i++) {
+            ItemStack st = player.getInventory().getItem(i);
+            if (st.is(Items.EMERALD)) {
+                int take = Math.min(remaining, st.getCount());
+                st.shrink(take);
+                remaining -= take;
             }
         }
     }
@@ -191,8 +247,8 @@ public class LuckyWheelBlockEntity extends BlockEntity {
         if (level instanceof ServerLevel sw) {
             for (ServerPlayer p : sw.players()) {
                 if (p.distanceToSqr(worldPosition.getX() + 0.5, worldPosition.getY() + 0.5, worldPosition.getZ() + 0.5) <= 64.0) {
-                    p.sendOverlayMessage(Component.literal("🎡 КОЛЕСО САНСАРЫ: " + msg).withStyle(format, ChatFormatting.BOLD));
-                    p.sendSystemMessage(Component.literal("🎡 [Колесо Сансары] " + msg).withStyle(format));
+                    p.sendOverlayMessage(Component.literal(msg).withStyle(format, ChatFormatting.BOLD));
+                    p.sendSystemMessage(Component.literal("🎡 " + msg).withStyle(format));
                 }
             }
         }
@@ -227,7 +283,7 @@ public class LuckyWheelBlockEntity extends BlockEntity {
         super.saveAdditional(output);
         output.putBoolean("spinning", spinning);
         output.putFloat("angle", angle);
-        output.putFloat("velocity", velocity);
+        output.putFloat("finalTargetAngle", finalTargetAngle);
         output.putInt("targetSector", targetSector);
     }
 
@@ -236,7 +292,7 @@ public class LuckyWheelBlockEntity extends BlockEntity {
         super.loadAdditional(input);
         spinning = input.getBooleanOr("spinning", false);
         angle = input.getFloatOr("angle", 0.0f);
-        velocity = input.getFloatOr("velocity", 0.0f);
+        finalTargetAngle = input.getFloatOr("finalTargetAngle", angle);
         targetSector = input.getIntOr("targetSector", 0);
     }
 }

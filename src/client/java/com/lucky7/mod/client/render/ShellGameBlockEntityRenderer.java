@@ -21,10 +21,10 @@ import net.minecraft.world.phys.Vec3;
 import org.jspecify.annotations.Nullable;
 
 public class ShellGameBlockEntityRenderer implements BlockEntityRenderer<ShellGameBlockEntity, ShellGameBlockEntityRenderer.ShellGameRenderState> {
-    private static final Identifier GOLD = Lucky7Mod.id("textures/entity/gold.png");
-    private static final Identifier DECK = Lucky7Mod.id("textures/entity/deck.png");
-    private static final Identifier CABINET = Lucky7Mod.id("textures/entity/cabinet.png");
-    private static final Identifier BUTTON = Lucky7Mod.id("textures/entity/button_red.png");
+    private static final Identifier MAHOGANY = Lucky7Mod.id("textures/entity/mahogany_wood.png");
+    private static final Identifier TABLE_FELT = Lucky7Mod.id("textures/entity/table_felt.png");
+    private static final Identifier CUP_GOLD = Lucky7Mod.id("textures/entity/cup_gold_ornate.png");
+    private static final Identifier WHEEL_ARROW = Lucky7Mod.id("textures/entity/wheel_arrow.png");
     private static final Identifier DIAMOND_TEX = Lucky7Mod.id("textures/reels/diamond.png");
 
     public static final class ShellGameRenderState extends BlockEntityRenderState {
@@ -74,61 +74,76 @@ public class ShellGameBlockEntityRenderer implements BlockEntityRenderer<ShellGa
         matrices.rotate(Axis.YP.rotationDegrees(rot));
         matrices.translate(-0.5, 0.0, -0.5);
 
-        // 1. Luxury Casino Table (4 legs + mahogany apron + green velvet top + gold corner trims)
-        solidBox(matrices, vc, CABINET, 0.08f, 0.00f, 0.08f, 0.20f, 0.68f, 0.20f, light);
-        solidBox(matrices, vc, CABINET, 0.80f, 0.00f, 0.08f, 0.92f, 0.68f, 0.20f, light);
-        solidBox(matrices, vc, CABINET, 0.08f, 0.00f, 0.80f, 0.20f, 0.68f, 0.92f, light);
-        solidBox(matrices, vc, CABINET, 0.80f, 0.00f, 0.80f, 0.92f, 0.68f, 0.92f, light);
+        // 1. Luxury Mahogany Casino Table Legs + Apron + Emerald Felt Mat
+        solidBox(matrices, vc, MAHOGANY, 0.09f, 0.00f, 0.09f, 0.21f, 0.68f, 0.21f, light);
+        solidBox(matrices, vc, MAHOGANY, 0.79f, 0.00f, 0.09f, 0.91f, 0.68f, 0.21f, light);
+        solidBox(matrices, vc, MAHOGANY, 0.09f, 0.00f, 0.79f, 0.21f, 0.68f, 0.91f, light);
+        solidBox(matrices, vc, MAHOGANY, 0.79f, 0.00f, 0.79f, 0.91f, 0.68f, 0.91f, light);
 
-        // Table top & Gold trim
-        solidBox(matrices, vc, GOLD, 0.04f, 0.68f, 0.04f, 0.96f, 0.76f, 0.96f, light);
-        solidBox(matrices, vc, DECK, 0.08f, 0.75f, 0.08f, 0.92f, 0.77f, 0.92f, light);
+        // Mahogany side frame & gold trim bevel
+        solidBox(matrices, vc, MAHOGANY, 0.06f, 0.62f, 0.06f, 0.94f, 0.75f, 0.94f, light);
+        solidBox(matrices, vc, CUP_GOLD, 0.04f, 0.72f, 0.04f, 0.96f, 0.76f, 0.96f, light);
+        // Emerald felt mat flush on top!
+        solidBox(matrices, vc, TABLE_FELT, 0.08f, 0.755f, 0.08f, 0.92f, 0.772f, 0.92f, light);
 
-        // 2. Three Animated Golden Cups (X: 0.24 = Left, 0.50 = Center, 0.76 = Right)
-        float[] basePositions = {0.24f, 0.50f, 0.76f};
+        // 2. Three Ornate Golden Thimble Cups (X: 0.23 = Cup 1, 0.50 = Cup 2, 0.77 = Cup 3)
+        float[] basePositions = {0.23f, 0.50f, 0.77f};
         ShellGameBlockEntity.State gs = state.gameState;
         float progress = state.shuffleProgress;
 
         for (int i = 0; i < 3; i++) {
             float cupX = basePositions[i];
-            float cupY = 0.77f;
+            float cupY = 0.772f;
             float cupZ = 0.50f;
 
-            // Lift cup during SHOWING, WON, or LOST
+            // Lift cup smoothly during SHOWING, WON, or LOST
             if ((gs == ShellGameBlockEntity.State.SHOWING && i == state.prizeCup) ||
                 (gs == ShellGameBlockEntity.State.WON && i == state.chosenCup) ||
                 (gs == ShellGameBlockEntity.State.LOST && (i == state.chosenCup || i == state.prizeCup))) {
                 cupY += 0.24f;
             }
 
-            // 3D Orbiting Shuffle Animation (cups weave around each other in X and Z)
+            // Smooth 3D weaving shuffle orbit
             if (gs == ShellGameBlockEntity.State.SHUFFLING) {
                 float phase = progress * (float) Math.PI * 6.0f + i * 2.094f;
-                cupX = 0.50f + Mth.cos(phase) * 0.25f;
+                cupX = 0.50f + Mth.cos(phase) * 0.26f;
                 cupZ = 0.50f + Mth.sin(phase) * 0.16f;
             }
 
-            // Draw Stepped Golden Cup + Ruby Handle
+            // Sculpted Stepped Goblet Thimble (wide flared rim, tapered fluted body, gold/ruby finial)
             matrices.pushPose();
             matrices.translate(cupX, cupY, cupZ);
-            solidBox(matrices, vc, GOLD, -0.085f, 0.00f, -0.085f, 0.085f, 0.04f, 0.085f, light);
-            solidBox(matrices, vc, GOLD, -0.075f, 0.04f, -0.075f, 0.075f, 0.18f, 0.075f, light);
-            solidBox(matrices, vc, GOLD, -0.055f, 0.18f, -0.055f, 0.055f, 0.22f, 0.055f, light);
-            solidBox(matrices, vc, BUTTON, -0.030f, 0.22f, -0.030f, 0.030f, 0.26f, 0.030f, 0x00F000F0);
+            solidBox(matrices, vc, CUP_GOLD, -0.095f, 0.000f, -0.095f, 0.095f, 0.045f, 0.095f, light);
+            solidBox(matrices, vc, CUP_GOLD, -0.080f, 0.045f, -0.080f, 0.080f, 0.140f, 0.080f, light);
+            solidBox(matrices, vc, CUP_GOLD, -0.064f, 0.140f, -0.064f, 0.064f, 0.205f, 0.064f, light);
+            solidBox(matrices, vc, CUP_GOLD, -0.042f, 0.205f, -0.042f, 0.042f, 0.232f, 0.042f, light);
+            solidBox(matrices, vc, WHEEL_ARROW, -0.024f, 0.232f, -0.024f, 0.024f, 0.262f, 0.024f, 0x00F000F0);
             matrices.popPose();
 
-            // Render Sparkling Diamond underneath prize cup when lifted
+            // Render Sparkling 3D Crossed-Sprite Diamond Crystal under prize cup when lifted
             if (i == state.prizeCup && (cupY > 0.85f)) {
                 matrices.pushPose();
-                matrices.translate(cupX, 0.78f, cupZ);
-                float spinGem = (System.currentTimeMillis() % 3600) * 0.1f;
+                matrices.translate(cupX, 0.80f, cupZ);
+                float spinGem = (System.currentTimeMillis() % 3600) * 0.12f;
                 matrices.rotate(Axis.YP.rotationDegrees(spinGem));
-                solidBox(matrices, vc, DIAMOND_TEX, -0.045f, 0.0f, -0.045f, 0.045f, 0.09f, 0.045f, 0x00F000F0);
+                renderDiamondSprite(matrices, vc);
                 matrices.popPose();
             }
         }
 
         matrices.popPose();
+    }
+
+    private void renderDiamondSprite(PoseStack m, SubmitNodeCollector vc) {
+        vc.submitCustomGeometry(m, RenderTypes.entityCutout(DIAMOND_TEX), (pose, b) -> {
+            float r = 0.075f;
+            float h = 0.145f;
+            // Crossed double-sided diamond crystal quads (crisp cutout!)
+            quadFace(pose, b, 0x00F000F0, 0, 0, 1, -r, 0, 0, r, 0, 0, r, h, 0, -r, h, 0);
+            quadFace(pose, b, 0x00F000F0, 0, 0, -1, r, 0, 0, -r, 0, 0, -r, h, 0, r, h, 0);
+            quadFace(pose, b, 0x00F000F0, 1, 0, 0, 0, 0, r, 0, 0, -r, 0, h, -r, 0, h, r);
+            quadFace(pose, b, 0x00F000F0, -1, 0, 0, 0, 0, -r, 0, 0, r, 0, h, r, 0, h, -r);
+        });
     }
 
     private void solidBox(PoseStack m, SubmitNodeCollector vc, Identifier tex, float x0, float y0, float z0, float x1, float y1, float z1, int light) {

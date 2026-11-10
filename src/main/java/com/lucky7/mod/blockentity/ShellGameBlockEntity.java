@@ -50,12 +50,16 @@ public class ShellGameBlockEntity extends BlockEntity {
         if (level == null || level.isClientSide()) return;
 
         if (state == State.IDLE || state == State.WON || state == State.LOST) {
-            // Start a new game - Cost: 1 Diamond or 1 Golden Chip
+            // Start a new game - Cost: 1 Diamond, 1 Casino Chip, or 2 Emeralds
             boolean paid = false;
             for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
                 ItemStack st = player.getInventory().getItem(i);
-                if (st.is(Items.DIAMOND) || st.is(Lucky7Items.GOLDEN_CHIP)) {
+                if (st.is(Items.DIAMOND) || st.is(Lucky7Items.GOLDEN_CHIP) || st.is(Lucky7Items.EMERALD_CHIP) || st.is(Lucky7Items.DIAMOND_CHIP)) {
                     st.shrink(1);
+                    paid = true;
+                    break;
+                } else if (st.is(Items.EMERALD) && st.getCount() >= 2) {
+                    st.shrink(2);
                     paid = true;
                     break;
                 }
@@ -63,7 +67,7 @@ public class ShellGameBlockEntity extends BlockEntity {
 
             if (!paid && !player.isCreative()) {
                 if (player instanceof ServerPlayer sp) {
-                    sp.sendOverlayMessage(Component.literal("⚠ Для игры в Напёрстки нужна ставка: 1 Алмаз или 1 Золотая Фишка!").withStyle(ChatFormatting.YELLOW));
+                    sp.sendOverlayMessage(Component.literal("⚠ Для игры в Напёрстки нужна ставка: 1 Фишка, 1 Алмаз или 2 Изумруда!").withStyle(ChatFormatting.YELLOW));
                 }
                 level.playSound(null, worldPosition, SoundEvents.CHEST_LOCKED, SoundSource.BLOCKS, 0.8f, 1.2f);
                 return;

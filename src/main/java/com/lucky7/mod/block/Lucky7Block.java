@@ -164,8 +164,8 @@ public class Lucky7Block extends BaseEntityBlock {
         switch (facing) {
             case NORTH -> { localX = 1.0 - dx; localZ = 1.0 - dz; }
             case SOUTH -> { localX = dx; localZ = dz; }
-            case EAST  -> { localX = dz; localZ = 1.0 - dx; }
-            case WEST  -> { localX = 1.0 - dz; localZ = dx; }
+            case EAST  -> { localX = 1.0 - dz; localZ = dx; }
+            case WEST  -> { localX = dz; localZ = 1.0 - dx; }
             default    -> { localX = dx; localZ = dz; }
         }
         double localY = dy;
@@ -265,17 +265,6 @@ public class Lucky7Block extends BaseEntityBlock {
 
     @Override
     protected void affectNeighborsAfterRemoval(BlockState state, ServerLevel level, BlockPos pos, boolean moved) {
-        if (state.getValue(HALF) == DoubleBlockHalf.LOWER) {
-            if (level.getBlockEntity(pos) instanceof Lucky7BlockEntity machine) {
-                for (int i = 0; i < Lucky7BlockEntity.STAKE_SLOTS; i++) {
-                    ItemStack stack = machine.getItem(i);
-                    if (!stack.isEmpty()) {
-                        Containers.dropItemStack(level, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, stack);
-                        machine.setItem(i, ItemStack.EMPTY);
-                    }
-                }
-            }
-        }
         super.affectNeighborsAfterRemoval(state, level, pos, moved);
     }
 }

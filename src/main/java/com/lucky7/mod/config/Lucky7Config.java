@@ -154,6 +154,11 @@ public final class Lucky7Config {
         LinkedHashMap<String, Integer> values = new LinkedHashMap<>();
         values.put("lucky7:lucky_coin", 25);
         values.put("lucky7:golden_chip", 100);
+        values.put("lucky7:lucky_dice", 150);
+        values.put("lucky7:lucky_clover", 200);
+        values.put("lucky7:emerald_chip", 250);
+        values.put("lucky7:lucky_ace", 300);
+        values.put("lucky7:diamond_chip", 500);
         values.put("lucky7:leafxup_trophy", 777);
 
         values.put("minecraft:iron_nugget", 1);

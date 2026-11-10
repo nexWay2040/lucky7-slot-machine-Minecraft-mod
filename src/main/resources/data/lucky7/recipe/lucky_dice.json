@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "Q": "minecraft:quartz_block",
+    "G": "minecraft:gold_nugget",
+    "I": "minecraft:black_dye"
+  },
+  "pattern": [
+    " Q ",
+    "GIG",
+    " Q "
+  ],
+  "result": {
+    "count": 1,
+    "id": "lucky7:lucky_dice"
+  }
+}
