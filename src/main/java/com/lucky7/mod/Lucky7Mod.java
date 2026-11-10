@@ -83,6 +83,6 @@ public final class Lucky7Mod implements ModInitializer {
             }
         });
 
-        LOGGER.info("Lucky 7 v2.0.0 initialized for Minecraft 26.3: Storyline, 3D Casinos & Leafxup Edition ready!");
+        LOGGER.info("Lucky 7 v2.0.0 initialized for Minecraft 26.3: Storyline, 3D Casinos & VIP Rewards ready!");
     }
 }

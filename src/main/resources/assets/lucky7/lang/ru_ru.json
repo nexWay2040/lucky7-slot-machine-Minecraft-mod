@@ -1,5 +1,5 @@
 {
-  "itemGroup.lucky7.general": "Синдикат Lucky 7 (Казино Лификсапа)",
+  "itemGroup.lucky7.general": "Казино Lucky 7",
   "block.lucky7.slot_machine": "Игровой автомат Lucky 7",
   "item.lucky7.slot_machine": "Игровой автомат Lucky 7",
   "block.lucky7.lucky_wheel": "Колесо Риска (Колесо Фортуны)",
@@ -14,7 +14,7 @@
   "item.lucky7.lucky_dice": "Счастливые Кости Удачи (Бросить ПКМ)",
   "item.lucky7.lucky_ace": "Козырный Туз Пик",
   "item.lucky7.lucky_clover": "Четырёхлистный Клевер Удачи",
-  "item.lucky7.leafxup_trophy": "Изумрудный Кубок Лификсапа (VIP 777)",
+  "item.lucky7.vip_trophy": "Королевский VIP Кубок Казино (777)",
   "gui.lucky7.title": "LUCKY 7 // ПАНЕЛЬ УПРАВЛЕНИЯ СИНДИКАТА",
   "gui.lucky7.start": "СТАРТ",
   "gui.lucky7.return": "ВЕРНУТЬ",

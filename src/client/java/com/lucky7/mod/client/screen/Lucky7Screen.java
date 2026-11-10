@@ -271,11 +271,11 @@ public final class Lucky7Screen extends AbstractContainerScreen<Lucky7ScreenHand
         int textY = oy + 32;
         ctx.text(this.font, Component.literal("1. Положите ценности или Золотые Фишки в 9 слотов СТАВКИ слева.").withStyle(ChatFormatting.WHITE), ox + 14, textY, 0xFFEEEEEE, false);
         ctx.text(this.font, Component.literal("2. Поддерживаются: Фишки (64), Монеты (12), Незерит, Алмазы, Золото, Железо...").withStyle(ChatFormatting.YELLOW), ox + 14, textY + 18, 0xFFFFFF66, false);
-        ctx.text(this.font, Component.literal("3. Секрет Босса: Кубок Лификсапа даёт VIP-режим и возвращается в инвентарь!").withStyle(ChatFormatting.AQUA), ox + 14, textY + 36, 0xFF66FFFF, false);
+        ctx.text(this.font, Component.literal("3. Секрет Босса: Королевский VIP Кубок даёт бонус шанса и не тратится!").withStyle(ChatFormatting.AQUA), ox + 14, textY + 36, 0xFF66FFFF, false);
         ctx.text(this.font, Component.literal("4. При выпадении 3 Клеверов или 3 Звёзд открывается кнопка БЕСПЛАТНЫЙ СПИН!").withStyle(ChatFormatting.GREEN), ox + 14, textY + 54, 0xFF66FF66, false);
         ctx.text(this.font, Component.literal("5. Выигрыши эффектно вылетают физическими предметами из нижнего лотка!").withStyle(ChatFormatting.WHITE), ox + 14, textY + 72, 0xFFFFFFFF, false);
-        ctx.text(this.font, Component.literal("6. Не хватает алмазов? Скрафтите Контракт Дона Криперионе (Изумруд + Бумага)!").withStyle(ChatFormatting.RED), ox + 14, textY + 90, 0xFFFF6666, false);
-        ctx.text(this.font, Component.literal("7. Также испытайте 3D Колесо Сансары и Стол Шулера (Игра в Напёрстки)!").withStyle(ChatFormatting.LIGHT_PURPLE), ox + 14, textY + 108, 0xFFFF88FF, false);
+        ctx.text(this.font, Component.literal("6. Не хватает алмазов? Активируйте Контракт Дона Криперионе!").withStyle(ChatFormatting.RED), ox + 14, textY + 90, 0xFFFF6666, false);
+        ctx.text(this.font, Component.literal("7. Также испытайте 3D Колесо Риска и Стол Шулера (Игра в Напёрстки)!").withStyle(ChatFormatting.LIGHT_PURPLE), ox + 14, textY + 108, 0xFFFF88FF, false);
 
         ctx.fill(ox + 2, oy + oh - 22, ox + ow - 2, oy + oh - 2, 0x44000000);
         ctx.text(this.font, Component.literal("[ Кликните в любое место или нажмите ESC, чтобы вернуться в игру ]").withStyle(ChatFormatting.GRAY), ox + 14, oy + oh - 15, 0xFFAAAAAA, false);

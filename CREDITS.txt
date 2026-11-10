@@ -22,7 +22,7 @@ on CurseForge and GitHub:
    - URL: https://opengameart.org/content/cc0-document-icons
    - License: CC0 1.0 Universal (Public Domain)
 
-4. Golden VIP Trophy base (`leafxup_trophy.png` base):
+4. Golden VIP Trophy base (`vip_trophy.png` base):
    - Source: OpenClipart Award Icons (CC0 Award Icons Pack via OpenGameArt / AntumDeluge)
    - URL: https://opengameart.org/content/cc0-award-icons
    - License: CC0 1.0 Universal (Public Domain)

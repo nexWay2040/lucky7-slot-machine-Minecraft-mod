@@ -47,8 +47,8 @@ public class CasinoContractItem extends Item {
 
             sp.sendSystemMessage(Component.literal("═══════════════════════════════════════════").withStyle(ChatFormatting.GOLD));
             sp.sendSystemMessage(Component.literal("🎩 ДОН КРИПЕРИОНЕ (Крёстный отец «Lucky 7»):").withStyle(ChatFormatting.DARK_RED, ChatFormatting.BOLD));
-            sp.sendSystemMessage(Component.literal("«Слушай сюда, Лификсап... то есть, уважаемый гость! Я выдал тебе 32 Алмаза и 8 Золотых Фишек на раскрутку в моём казино.»").withStyle(ChatFormatting.YELLOW));
-            sp.sendSystemMessage(Component.literal("«Крути слоты, испытай Колесо Сансары или обыграй шулера в Напёрстки!»").withStyle(ChatFormatting.WHITE));
+            sp.sendSystemMessage(Component.literal("«Слушай сюда, уважаемый гость! Я выдал тебе 32 Алмаза и 8 Золотых Фишек на раскрутку в моём казино.»").withStyle(ChatFormatting.YELLOW));
+            sp.sendSystemMessage(Component.literal("«Крути слоты, испытай Колесо Риска или обыграй шулера в Напёрстки!»").withStyle(ChatFormatting.WHITE));
             sp.sendSystemMessage(Component.literal("⚠ УСЛОВИЕ СДЕЛКИ: Верни мне 48 Алмазов (кликни Контрактом с алмазами в инвентаре).").withStyle(ChatFormatting.GOLD));
             sp.sendSystemMessage(Component.literal("💀 Если решишь кинуть мафию и кликнешь без 48 алмазов — за тобой выедут мои коллекторы Боб и Джо!»").withStyle(ChatFormatting.RED, ChatFormatting.ITALIC));
             sp.sendSystemMessage(Component.literal("═══════════════════════════════════════════").withStyle(ChatFormatting.GOLD));
@@ -70,7 +70,7 @@ public class CasinoContractItem extends Item {
             }
 
             if (diamondCount >= 48) {
-                // ACT II (GOOD ENDING): Pay off the debt & become VIP Casino Baron + get Leafxup Trophy!
+                // ACT II (GOOD ENDING): Pay off the debt & become VIP Casino Baron + get Royal VIP Trophy!
                 int toRemove = 48;
                 for (int i = 0; i < player.getInventory().getContainerSize() && toRemove > 0; i++) {
                     ItemStack s = player.getInventory().getItem(i);
@@ -83,7 +83,7 @@ public class CasinoContractItem extends Item {
                 player.removeTag("lucky7_debtor");
                 player.addTag("lucky7_vip_boss");
 
-                giveOrDrop(player, new ItemStack(Lucky7Items.LEAFXUP_TROPHY, 1));
+                giveOrDrop(player, new ItemStack(Lucky7Items.VIP_TROPHY, 1));
                 giveOrDrop(player, new ItemStack(Items.ENCHANTED_GOLDEN_APPLE, 3));
                 giveOrDrop(player, new ItemStack(Items.NETHERITE_INGOT, 4));
                 giveOrDrop(player, new ItemStack(Lucky7Items.GOLDEN_CHIP, 16));
@@ -94,16 +94,16 @@ public class CasinoContractItem extends Item {
                 sp.sendSystemMessage(Component.literal("═══════════════════════════════════════════").withStyle(ChatFormatting.GREEN));
                 sp.sendSystemMessage(Component.literal("🎩 ДОН КРИПЕРИОНЕ:").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
                 sp.sendSystemMessage(Component.literal("«Моё почтение! Ты человек слова! Долг в 48 алмазов закрыт сполна!»").withStyle(ChatFormatting.GREEN));
-                sp.sendSystemMessage(Component.literal("«Отныне ты — Совладелец Синдиката Lucky 7! Держи эксклюзивный Изумрудный Лист Лификсапа (Leafxup VIP Trophy), незерит и 16 Золотых фишек!»").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD));
+                sp.sendSystemMessage(Component.literal("«Отныне ты — Совладелец Синдиката Lucky 7! Держи эксклюзивный Королевский VIP Кубок Казино, незерит и 16 Золотых фишек!»").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD));
                 sp.sendSystemMessage(Component.literal("═══════════════════════════════════════════").withStyle(ChatFormatting.GREEN));
 
                 sw.playSound(null, player.blockPosition(), SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundSource.PLAYERS, 1.0f, 1.0f);
                 sw.sendParticles(ParticleTypes.TOTEM_OF_UNDYING, player.getX(), player.getY() + 1.2, player.getZ(), 90, 0.6, 0.7, 0.6, 0.2);
             } else {
-                // ACT II (CHAOS / FUNNY STREAMER EVENT): Not enough diamonds -> Mafia Bouncers ambush!
+                // ACT II (CHAOS EVENT): Not enough diamonds -> Mafia Bouncers ambush!
                 sp.sendSystemMessage(Component.literal("═══════════════════════════════════════════").withStyle(ChatFormatting.DARK_RED));
                 sp.sendSystemMessage(Component.literal("🚨 ДОН КРИПЕРИОНЕ:").withStyle(ChatFormatting.RED, ChatFormatting.BOLD));
-                sp.sendSystemMessage(Component.literal("«У тебя всего " + diamondCount + " из 48 алмазов! Решил кинуть наше казино на глазах у подписчиков?!»").withStyle(ChatFormatting.YELLOW));
+                sp.sendSystemMessage(Component.literal("«У тебя всего " + diamondCount + " из 48 алмазов! Решил кинуть наше казино?!»").withStyle(ChatFormatting.YELLOW));
                 sp.sendSystemMessage(Component.literal("«Парни! Вышибала Боб, Коллектор Джо — оформите этому лудоману горячий приём!»").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
                 sp.sendSystemMessage(Component.literal("═══════════════════════════════════════════").withStyle(ChatFormatting.DARK_RED));
 

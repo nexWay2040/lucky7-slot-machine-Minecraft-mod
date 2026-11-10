@@ -1,6 +1,6 @@
 {
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "lucky7:item/leafxup_trophy"
+    "layer0": "lucky7:item/vip_trophy"
   }
 }

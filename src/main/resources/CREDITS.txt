@@ -3,7 +3,7 @@ Lucky 7 Mod - Open Source & Third-Party Texture Attributions
 1. Casino-Rocket-1.21.1 (AndresPR512) - MIT License (gold_chip, emerald_chip, diamond_chip, gold_coin)
 2. tstamborski/pixelart-icons - CC0 1.0 (dices32, ace32, lucky32)
 3. 7Soul1 Document Icons (OpenGameArt) - CC0 1.0 (document_02 -> casino_contract)
-4. OpenClipart Award Icons (OpenGameArt) - CC0 1.0 (trophy_01 -> leafxup_trophy base)
+4. OpenClipart Award Icons (OpenGameArt) - CC0 1.0 (trophy_01 -> vip_trophy base)
 5. draganasgamesart - Wheel Fortune (OpenGameArt) - CC0 1.0 (wheel_texture -> lucky_wheel base)
 6. Chasersgaming - Pixel Poker Pack (OpenGameArt) - CC0 1.0 (Poker_Table -> table_felt base)
 7. JoeEnderman - Colored Planks 16x (OpenGameArt) - CC0 1.0 (chestnut wood plank -> mahogany_wood)

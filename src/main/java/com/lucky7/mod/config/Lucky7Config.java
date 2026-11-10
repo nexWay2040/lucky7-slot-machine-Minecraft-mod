@@ -159,7 +159,7 @@ public final class Lucky7Config {
         values.put("lucky7:emerald_chip", 250);
         values.put("lucky7:lucky_ace", 300);
         values.put("lucky7:diamond_chip", 500);
-        values.put("lucky7:leafxup_trophy", 777);
+        values.put("lucky7:vip_trophy", 777);
 
         values.put("minecraft:iron_nugget", 1);
         values.put("minecraft:gold_nugget", 1);

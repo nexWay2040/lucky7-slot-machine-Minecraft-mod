@@ -22,7 +22,7 @@ public final class Lucky7Items {
     public static final ResourceKey<Item> LUCKY_DICE_KEY = ResourceKey.create(Registries.ITEM, Lucky7Mod.id("lucky_dice"));
     public static final ResourceKey<Item> LUCKY_ACE_KEY = ResourceKey.create(Registries.ITEM, Lucky7Mod.id("lucky_ace"));
     public static final ResourceKey<Item> LUCKY_CLOVER_KEY = ResourceKey.create(Registries.ITEM, Lucky7Mod.id("lucky_clover"));
-    public static final ResourceKey<Item> LEAFXUP_TROPHY_KEY = ResourceKey.create(Registries.ITEM, Lucky7Mod.id("leafxup_trophy"));
+    public static final ResourceKey<Item> VIP_TROPHY_KEY = ResourceKey.create(Registries.ITEM, Lucky7Mod.id("vip_trophy"));
 
     public static final Item CASINO_CONTRACT = registerItem(
         CASINO_CONTRACT_KEY,
@@ -72,9 +72,9 @@ public final class Lucky7Items {
         new Item.Properties().stacksTo(64).rarity(Rarity.UNCOMMON)
     );
 
-    public static final Item LEAFXUP_TROPHY = registerItem(
-        LEAFXUP_TROPHY_KEY,
-        LeafxupTrophyItem::new,
+    public static final Item VIP_TROPHY = registerItem(
+        VIP_TROPHY_KEY,
+        VipTrophyItem::new,
         new Item.Properties().stacksTo(1).rarity(Rarity.EPIC)
     );
 
@@ -95,7 +95,7 @@ public final class Lucky7Items {
             entries.accept(LUCKY_DICE);
             entries.accept(LUCKY_ACE);
             entries.accept(LUCKY_CLOVER);
-            entries.accept(LEAFXUP_TROPHY);
+            entries.accept(VIP_TROPHY);
         });
 
         CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.FUNCTIONAL_BLOCKS).register(entries -> {
@@ -107,7 +107,7 @@ public final class Lucky7Items {
             entries.accept(LUCKY_DICE);
             entries.accept(LUCKY_ACE);
             entries.accept(LUCKY_CLOVER);
-            entries.accept(LEAFXUP_TROPHY);
+            entries.accept(VIP_TROPHY);
         });
     }
 }

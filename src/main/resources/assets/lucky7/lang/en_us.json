@@ -1,5 +1,5 @@
 {
-  "itemGroup.lucky7.general": "Lucky 7 Syndicate (Leafxup Casino)",
+  "itemGroup.lucky7.general": "Lucky 7 Casino",
   "block.lucky7.slot_machine": "Lucky 7 Slot Machine",
   "item.lucky7.slot_machine": "Lucky 7 Slot Machine",
   "block.lucky7.lucky_wheel": "Wheel of Risk (Fortune Wheel)",
@@ -14,7 +14,7 @@
   "item.lucky7.lucky_dice": "Lucky Casino Dice (Right-Click Roll)",
   "item.lucky7.lucky_ace": "Ace of Spades Trump Card",
   "item.lucky7.lucky_clover": "Four-Leaf Lucky Clover",
-  "item.lucky7.leafxup_trophy": "Leafxup's Emerald VIP Trophy (777)",
+  "item.lucky7.vip_trophy": "Royal Casino VIP Trophy (777)",
   "gui.lucky7.title": "LUCKY 7 // SYNDICATE CONTROL PANEL",
   "gui.lucky7.start": "START",
   "gui.lucky7.return": "RETURN",

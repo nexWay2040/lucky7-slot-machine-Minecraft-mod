@@ -271,23 +271,23 @@ public class Lucky7BlockEntity extends BlockEntity implements Container, Extende
             return false;
         }
 
-        // Check for Divine VIP Stake or Leafxup Streamer Trophy!
+        // Check for Divine VIP Stake or Royal Casino VIP Trophy!
         boolean isVip = false;
-        boolean hasLeafxupTrophy = false;
+        boolean hasVipTrophy = false;
         for (int i = 0; i < STAKE_SLOTS; i++) {
             ItemStack st = items.get(i);
-            if (st.is(Lucky7Items.LEAFXUP_TROPHY)) {
-                hasLeafxupTrophy = true;
+            if (st.is(Lucky7Items.VIP_TROPHY)) {
+                hasVipTrophy = true;
                 isVip = true;
             } else if (st.is(Items.ENCHANTED_GOLDEN_APPLE) || st.is(Items.NETHER_STAR) || st.is(Items.DRAGON_EGG)) {
                 isVip = true;
             }
         }
 
-        if (hasLeafxupTrophy && player instanceof ServerPlayer sp) {
+        if (hasVipTrophy && player instanceof ServerPlayer sp) {
             sp.addEffect(new MobEffectInstance(MobEffects.LUCK, 2400, 2));
             sp.addEffect(new MobEffectInstance(MobEffects.HERO_OF_THE_VILLAGE, 2400, 1));
-            sp.sendSystemMessage(Component.literal("👑 [СИНДИКАТ LUCKY 7] Распознан Золотой Кубок Лификсапа! Босс казино крутит бесплатно — Кубок возвращён владельцу!").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
+            sp.sendSystemMessage(Component.literal("👑 [СИНДИКАТ LUCKY 7] Распознан Королевский VIP Кубок! Босс казино крутит с максимальным шансом — Кубок возвращён владельцу!").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
             if (level instanceof ServerLevel sw) {
                 sw.playSound(null, worldPosition, SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundSource.BLOCKS, 1.0f, 1.15f);
             }
@@ -310,10 +310,10 @@ public class Lucky7BlockEntity extends BlockEntity implements Container, Extende
         lastSpinAt = level.getGameTime();
         activePlayer = (player != null) ? player.getUUID() : null;
 
-        // Clear stake items atomically on server (return Leafxup Trophy to the Boss so it is never lost!)
+        // Clear stake items atomically on server (return VIP Trophy to the Boss so it is never lost!)
         for (int i = 0; i < STAKE_SLOTS; i++) {
             ItemStack st = items.get(i);
-            if (!st.isEmpty() && st.is(Lucky7Items.LEAFXUP_TROPHY) && player != null) {
+            if (!st.isEmpty() && st.is(Lucky7Items.VIP_TROPHY) && player != null) {
                 ItemStack copy = st.copy();
                 if (!player.getInventory().add(copy)) {
                     player.level().addFreshEntity(new ItemEntity(player.level(), player.getX(), player.getY() + 0.5, player.getZ(), copy));

@@ -17,20 +17,20 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 
 /**
- * Special streamer item & Easter Egg dedicated to leafxup (Лификсап).
- * Can be used in hand to activate the "Streamer Luck Boost" or placed into the Lucky 7 Slot Machine
- * as a 777-point VIP stake that guarantees a legendary Streamer Jackpot!
+ * Exclusive Royal VIP Trophy item.
+ * Can be used in hand to activate the "Casino Boss Luck Aura" or placed into the Lucky 7 Slot Machine
+ * as a 777-point VIP stake that returns to the player and triggers VIP jackpot odds.
  */
-public class LeafxupTrophyItem extends Item {
-    private static final String[] LEAFXUP_QUOTES = {
-        "🍃 [LEAFXUP EDITION] «Чат, ну сейчас точно выпадет 777, я чувствую этот занос!»",
-        "🍃 [LEAFXUP EDITION] «Подождите, это что, реально сюжетное казино в Майнкрафте?! Десять из десяти!»",
-        "🍃 [LEAFXUP EDITION] «Так, стоп, почему за мной бегут два скелета из налоговой в золотых трусах?!»",
-        "🍃 [LEAFXUP EDITION] «Последний спин и точно идём копать шахту... Ладно, ещё один бесплатный спин!»",
-        "🍃 [LEAFXUP EDITION] «Дон Криперионе, брат, я отдам алмазы в следующей серии, зуб даю!»"
+public class VipTrophyItem extends Item {
+    private static final String[] BOSS_QUOTES = {
+        "👑 [VIP СИНДИКАТ] «Сегодня фортуна на моей стороне — пора срывать джекпот 777!»",
+        "👑 [VIP СИНДИКАТ] «Золотой кубок сияет — ставки повышаются, шансы растут!»",
+        "👑 [VIP СИНДИКАТ] «Так, стоп, почему за мной снова бегут коллекторы в золотой броне?!»",
+        "👑 [VIP СИНДИКАТ] «Последний спин и иду в шахту... Ладно, ещё один бесплатный спин!»",
+        "👑 [VIP СИНДИКАТ] «Дон Криперионе, старина, эти алмазы точно окупятся сполна!»"
     };
 
-    public LeafxupTrophyItem(Properties properties) {
+    public VipTrophyItem(Properties properties) {
         super(properties);
     }
 
@@ -40,9 +40,10 @@ public class LeafxupTrophyItem extends Item {
             return InteractionResult.SUCCESS;
         }
         if (player instanceof ServerPlayer sp && level instanceof ServerLevel sw) {
-            int idx = sw.getRandom().nextInt(LEAFXUP_QUOTES.length);
-            sp.sendSystemMessage(Component.literal(LEAFXUP_QUOTES[idx]).withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD));
-            sp.sendSystemMessage(Component.literal("✨ [Бонус Лификсапа] Вы получили эффект Удачи III и Скорости II! (Или положите этот трофей в слот ставки автомата Lucky 7 для Стримерского Джекпота!)").withStyle(ChatFormatting.GOLD), true);
+            sp.getCooldowns().addCooldown(player.getItemInHand(hand), 100);
+            int idx = sw.getRandom().nextInt(BOSS_QUOTES.length);
+            sp.sendSystemMessage(Component.literal(BOSS_QUOTES[idx]).withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
+            sp.sendOverlayMessage(Component.literal("✨ [VIP Бонус] Удача III и Скорость II активированы! Положите кубок в автомат для VIP-спина!").withStyle(ChatFormatting.GREEN));
 
             sp.addEffect(new MobEffectInstance(MobEffects.LUCK, 2400, 2));
             sp.addEffect(new MobEffectInstance(MobEffects.SPEED, 1200, 1));
@@ -58,6 +59,6 @@ public class LeafxupTrophyItem extends Item {
 
     @Override
     public boolean isFoil(ItemStack stack) {
-        return true; // Permanent enchanted glint
+        return true;
     }
 }
